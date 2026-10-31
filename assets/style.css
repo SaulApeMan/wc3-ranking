@@ -27,6 +27,13 @@ tr:hover td{background:#251e15}.tw{overflow-x:auto}
 td.small{font-size:13px}
 @media(max-width:700px){.pbar{width:60px}}
 .cards.act .card b i{font-style:normal}
+details.help>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+details.help>summary::-webkit-details-marker{display:none}
+details.help>summary h2{display:inline-block}
+.q{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);font-size:14px;font-weight:700;margin-top:14px}
+details.help[open] .q{background:var(--gold);color:var(--bg)}
+.helpbox{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:4px 14px;margin:0 0 10px;font-size:14px}
+.helpbox p{margin:8px 0}
 .cards.act .card em{display:block;font-style:normal;font-size:13px;color:var(--ink);margin-top:4px}
 .cards.act .card small{font-size:14px;color:var(--dim);font-weight:400}
 .rbar{display:flex;height:18px;border-radius:9px;overflow:hidden;border:1px solid var(--line);margin:6px 0 8px}
