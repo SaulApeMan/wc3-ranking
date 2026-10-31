@@ -27,6 +27,7 @@ tr:hover td{background:#251e15}.tw{overflow-x:auto}
 td.small{font-size:13px}
 @media(max-width:700px){.pbar{width:60px}}
 .cards.act .card b i{font-style:normal}
+table.srt th{cursor:pointer;user-select:none;white-space:nowrap}table.srt th:hover{color:var(--ink)}.sa{font-size:11px}
 td.lgch{white-space:nowrap}
 details.help>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
 details.help>summary::-webkit-details-marker{display:none}
@@ -48,9 +49,9 @@ details.help[open] .q{background:var(--gold);color:var(--bg)}
 .rbar span{display:block;height:100%}
 .rleg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px}
 .rleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
-.scant{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 0 8px}
-.scant>div{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;min-width:200px}
-.scant b{font-size:16px}
+.scant{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 0 8px;flex:1 1 auto}
+.scant>div{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;min-width:190px;flex:1 1 0}
+.scant b{font-size:20px}.scant>div>span{font-size:14px}
 label.col{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 #nxt{color:#7fc4ff;font-variant-numeric:tabular-nums}
 #ago{color:var(--gold);font-variant-numeric:tabular-nums}

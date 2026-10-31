@@ -232,9 +232,10 @@ function actTable(title,head,list,row){
  if(!list.length)return '';
  return '<h2>'+title+'</h2><div class="tw"><table><tr>'+head+'</tr>'+list.map(row).join('')+'</table></div>'}
 var LOC={pl:'pl-PL',en:'en-GB',zh:'zh-CN',de:'de-DE'};
+function locFor(){var n=navigator.language||'';return L=='en'&&/^en(-|$)/i.test(n)?n:(LOC[L]||'en-GB')}
 function scanWhen(w,d){
  if(!w)return esc(d);
- var b=new Date(w[1]*1000),loc=LOC[L]||'en-GB';
+ var b=new Date(w[1]*1000),loc=locFor();
  return b.toLocaleDateString(loc,{day:'numeric',month:'short',year:'numeric'})+', '+b.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit'})}
 function agoText(t){
  var m=Math.max(0,Math.floor((Date.now()/1000-t)/60)),d=Math.floor(m/1440),h=Math.floor(m%1440/60);
@@ -249,11 +250,11 @@ function activityPage(){
  var a=D.activity[st.m];
  var o='<div class="ctl"><label class="col">'+T('Tryb','Mode')+' <select id="am">'+ms.map(function(m){return'<option'+(m==st.m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></label>';
  var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}
- o+='<div class="scant"><div><span class="dim">'+T('Poprzedni skan','Previous scan')+'</span><b>'+scanWhen(a.t0,a.from)+'</b></div>'+
+ o+='<div class="scant" title="'+T('Czas Twojej strefy','Your local time')+(tz?' ('+esc(tz)+')':'')+'"><div><span class="dim">'+T('Poprzedni skan','Previous scan')+'</span><b>'+scanWhen(a.t0,a.from)+'</b></div>'+
   '<div><span class="dim">'+T('Aktualny skan','Current scan')+'</span><b>'+scanWhen(a.t1,a.to)+'</b></div>'+
   (a.t1?'<div><span class="dim">'+T('Od aktualnego skanu minęło','Time since the current scan')+'</span><b id="ago" data-t="'+a.t1[1]+'">'+agoText(a.t1[1])+'</b></div>':'')+
   (a.next?'<div title="'+scanWhen([a.next,a.next],'')+'"><span class="dim">'+T('Następny skan','Next scan')+'</span><b id="nxt" data-t="'+a.next+'">'+inText(a.next)+'</b></div>':'')+
-  '</div></div>'+(a.t0||a.t1?'<p class="dim small">'+T('Czas Twojej strefy','Your local time')+(tz?' ('+esc(tz)+')':'')+T('; podajemy chwilę zakończenia skanu.','; the time when the scan finished.')+'</p>':'');
+  '</div></div>';
  var S=a.sum||{},nf=function(x){return Math.round(x).toLocaleString()};
  var day=function(g){return S.hours>0?g/S.hours*24:null};
  if(S.games!=null){
@@ -279,14 +280,45 @@ function activityPage(){
   o+='<div class="rleg">'+rs.map(function(x){return'<span><i style="background:var(--'+RC[x[0]]+')"></i>'+esc(rn(x[0]))+' <b>'+(x[1]/tot*100).toFixed(0)+'%</b> <span class="dim">'+nf(x[1])+'</span></span>'}).join('')+'</div>'}
  if(S.pairs)o+='<p class="dim small">'+T('Gracze i rasy: ','Players and races: ')+nf(S.pairs)+T(' graczy rozpoznanych po BattleTagu w obu skanach; gry ras liczone po stronie każdego gracza.',' players recognised by BattleTag in both scans; games by race are counted on each player’s side.')+'</p>';
  // per-player numbers ONLY from the window between the two scans (Saul 2026-10-31)
- function wl(w,l){return w==null||l==null?'<td class="n dim">–</td><td class="n dim">–</td>':'<td class="n"><span class="up">'+w+'</span>–<span class="down">'+l+'</span></td><td class="n">'+(w+l?Math.round(w/(w+l)*100)+'%':'–')+'</td>'}
- function lgch(a0,a1){if(!a1)return '<td class="dim">–</td>';if(!a0||a0==a1)return '<td>'+lgcell(a1)+'</td>';return '<td class="lgch">'+lgcell(a0)+' <span class="'+(a1>a0?'up':'down')+'">'+(a1>a0?'▲':'▼')+'</span> '+lgcell(a1)+'</td>'}
- var wh='<th class="n">'+T('W–P','W–L')+'</th><th class="n">'+T('% wygr.','Win %')+'</th>',lh='<th>'+T('Liga','League')+'</th>';
- o+=actTable(T('Najwięcej rozegranych gier','Most games played'),'<th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">'+T('Gry','Games')+'</th>'+wh+'<th class="n">MMR</th><th class="n">'+T('Zmiana','Change')+'</th>'+lh,a.games.filter(function(r){return r[2]>0}),function(r){return'<tr><td>'+icon(r[5])+nm(r[0])+'</td><td>'+rc(r[1])+'</td><td class="n">'+r[2]+'</td>'+wl(r[6],r[7])+'<td class="n">'+r[4]+'</td><td class="n">'+sgn(r[4]-r[3])+'</td>'+lgch(r[8],r[9])+'</tr>'});
- o+=actTable(T('Największe zmiany MMR','Biggest MMR changes'),'<th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">'+T('Zmiana','Change')+'</th><th class="n">'+T('Było','Was')+'</th><th class="n">'+T('Jest','Now')+'</th><th class="n">'+T('Gry','Games')+'</th>'+wh+lh,a.jumps,function(r){return'<tr><td>'+icon(r[5])+nm(r[0])+'</td><td>'+rc(r[1])+'</td><td class="n">'+sgn(r[2])+'</td><td class="n">'+r[3]+'</td><td class="n">'+r[4]+'</td><td class="n">'+(r[6]!=null?r[6]+r[7]:'–')+'</td>'+wl(r[6],r[7])+lgch(r[8],r[9])+'</tr>'});
- o+=actTable(T('Nowi w rankingu','New in the ladder'),'<th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">MMR</th><th class="n">'+T('Gry','Games')+'</th>'+wh+lh+'<th class="n">'+T('Poz.','Lvl')+'</th>',a.new,function(r){return'<tr><td>'+icon(r[3])+nm(r[0])+'</td><td>'+rc(r[1])+'</td><td class="n">'+r[2]+'</td><td class="n">'+(r[4]!=null&&r[5]!=null?r[4]+r[5]:'–')+'</td>'+wl(r[4],r[5])+'<td>'+lgcell(r[6])+'</td><td class="n">'+(r[7]!=null?r[7]:'–')+'</td></tr>'});
+ // per-player numbers ONLY from the window between the two scans (Saul 2026-10-31); league = current league only;
+ // every column sorts on click (first click: numbers high->low, text A->Z; second click reverses)
+ var pct=function(w,l){return w==null||l==null||!(w+l)?null:w/(w+l)*100};
+ function wlc(w,l){return w==null||l==null?'<span class="dim">–</span>':'<span class="up">'+w+'</span>–<span class="down">'+l+'</span>'}
+ function lgc(id){return id?lgcell(id):'<span class="dim">–</span>'}
+ st.sort=st.sort||{};
+ function sTable(id,title,cols,list,def){
+  if(!list.length)return '';
+  if(!st.sort[id])st.sort[id]=def;var s=st.sort[id],c=cols[s.c],rows=list.slice();
+  rows.sort(function(a,b){var x=c.v(a),y=c.v(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+   var r=typeof x=='string'?x.localeCompare(y):x-y;return s.d?-r:r});
+  return '<h2>'+title+'</h2><div class="tw"><table class="srt"><tr>'+cols.map(function(k,n){return'<th data-st="'+id+'" data-c="'+n+'" data-n="'+(k.n||k.hi?1:0)+'"'+(k.n?' class="n"':'')+'>'+k.h+(n==s.c?' <span class="sa">'+(s.d?'▼':'▲')+'</span>':'')+'</th>'}).join('')+'</tr>'+
+   rows.map(function(r){return'<tr>'+cols.map(function(k){return'<td'+(k.n?' class="n"':'')+'>'+k.td(r)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'}
+ var cP={h:T('Gracz','Player'),v:function(r){return (r[0]||'').toLowerCase()}},cR={h:T('Rasa','Race'),v:function(r){return rn(r[1])},td:function(r){return rc(r[1])}},
+  cWL=function(w,l){return {h:T('W–P','W–L'),n:1,v:function(r){return r[w]},td:function(r){return wlc(r[w],r[l])}}},
+  cPct=function(w,l){return {h:T('% wygr.','Win %'),n:1,v:function(r){return pct(r[w],r[l])},td:function(r){var p=pct(r[w],r[l]);return p==null?'–':Math.round(p)+'%'}}},
+  cLg=function(k){return {h:T('Liga','League'),hi:1,v:function(r){return r[k]||null},td:function(r){return lgc(r[k])}}};
+ o+=sTable('g',T('Najwięcej rozegranych gier','Most games played'),[
+  {h:cP.h,v:cP.v,td:function(r){return icon(r[5])+nm(r[0])}},cR,
+  {h:T('Gry','Games'),n:1,v:function(r){return r[2]},td:function(r){return r[2]}},cWL(6,7),cPct(6,7),
+  {h:'MMR',n:1,v:function(r){return r[4]},td:function(r){return r[4]}},
+  {h:T('Zmiana','Change'),n:1,v:function(r){return r[4]-r[3]},td:function(r){return sgn(r[4]-r[3])}},cLg(9)],
+  a.games.filter(function(r){return r[2]>0}),{c:2,d:1});
+ o+=sTable('j',T('Największe zmiany MMR','Biggest MMR changes'),[
+  {h:cP.h,v:cP.v,td:function(r){return icon(r[5])+nm(r[0])}},cR,
+  {h:T('Zmiana','Change'),n:1,v:function(r){return Math.abs(r[2])},td:function(r){return sgn(r[2])}},
+  {h:T('Było','Was'),n:1,v:function(r){return r[3]},td:function(r){return r[3]}},
+  {h:T('Jest','Now'),n:1,v:function(r){return r[4]},td:function(r){return r[4]}},
+  {h:T('Gry','Games'),n:1,v:function(r){return r[6]!=null?r[6]+r[7]:null},td:function(r){return r[6]!=null?r[6]+r[7]:'–'}},cWL(6,7),cPct(6,7),cLg(9)],
+  a.jumps,{c:2,d:1});
+ o+=sTable('n',T('Nowi w rankingu','New in the ladder'),[
+  {h:cP.h,v:cP.v,td:function(r){return icon(r[3])+nm(r[0])}},cR,
+  {h:'MMR',n:1,v:function(r){return r[2]},td:function(r){return r[2]}},
+  {h:T('Gry','Games'),n:1,v:function(r){return r[4]!=null&&r[5]!=null?r[4]+r[5]:null},td:function(r){return r[4]!=null&&r[5]!=null?r[4]+r[5]:'–'}},cWL(4,5),cPct(4,5),cLg(6),
+  {h:T('Poz.','Lvl'),n:1,v:function(r){return r[7]},td:function(r){return r[7]!=null?r[7]:'–'}}],
+  a.new,{c:2,d:1});
  o+='<p class="dim">'+T('Gry, wygrane, przegrane, zmiana MMR i ligi dotyczą tylko czasu między dwoma skanami. Nowi gracze nie mają poprzedniego skanu, więc pokazujemy ich cały bilans z aktualnego skanu. Gracze dopasowani po BattleTagu; wartości odczytywane przez OCR, pojedyncze mogą być błędne.','Games, wins, losses, MMR change and leagues cover only the time between the two scans. New players have no previous scan, so their whole record from the current scan is shown. Players are matched by BattleTag; values are read by OCR, single ones may be wrong.')+'</p>';
  root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;activityPage()};
+ document.querySelectorAll('th[data-st]').forEach(function(h){h.onclick=function(){var id=h.dataset.st,c=+h.dataset.c,cur=st.sort[id];st.sort[id]={c:c,d:cur&&cur.c==c?(cur.d?0:1):+h.dataset.n};var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
  if(!window._agoT)window._agoT=setInterval(tickAgo,20000)}
 function homePage(){
  var m=D.modes['1v1'],rc_=m.races,o='<div class="cards">';
