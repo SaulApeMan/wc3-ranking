@@ -27,6 +27,7 @@ tr:hover td{background:#251e15}.tw{overflow-x:auto}
 td.small{font-size:13px}
 @media(max-width:700px){.pbar{width:60px}}
 .cards.act .card b i{font-style:normal}
+td.lgch{white-space:nowrap}
 details.help>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
 details.help>summary::-webkit-details-marker{display:none}
 details.help>summary h2{display:inline-block}
@@ -35,6 +36,13 @@ details.help[open] .q{background:var(--gold);color:var(--bg)}
 .helpbox{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:4px 14px;margin:0 0 10px;font-size:14px}
 .helpbox p{margin:8px 0}
 .cards.act .card em{display:block;font-style:normal;font-size:13px;color:var(--ink);margin-top:4px}
+.cards.act .card.svc{display:flex;align-items:center;gap:14px}
+.card.svc>img{width:56px;height:56px;flex:none}
+.eclipse{position:relative;flex:none;width:84px;height:72px}
+.eclipse .big{width:72px;height:72px;filter:drop-shadow(0 0 6px rgba(0,116,224,.7))}
+.eclipse .moon{position:absolute;right:0;top:6px;border-radius:50%;box-shadow:0 0 0 2px var(--panel)}
+.cards.act .card.svc em{font-size:15px;line-height:1.45}
+@media(max-width:700px){.card.svc>img{width:40px;height:40px}.cards.act .card.svc{gap:10px}.cards.act .card.svc em{font-size:13px}}
 .cards.act .card small{font-size:14px;color:var(--dim);font-weight:400}
 .rbar{display:flex;height:18px;border-radius:9px;overflow:hidden;border:1px solid var(--line);margin:6px 0 8px}
 .rbar span{display:block;height:100%}
@@ -43,9 +51,11 @@ details.help[open] .q{background:var(--gold);color:var(--bg)}
 .scant{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 0 8px}
 .scant>div{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;min-width:200px}
 .scant b{font-size:16px}
+label.col{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+#nxt{color:#7fc4ff;font-variant-numeric:tabular-nums}
 #ago{color:var(--gold);font-variant-numeric:tabular-nums}
 p.small{font-size:13px;margin-top:2px}
-@media(max-width:700px){.ctl .scant{margin:0;width:100%;gap:6px}.scant>div{flex:1 1 100%;flex-direction:row;justify-content:space-between;align-items:baseline;padding:6px 10px;min-width:0}.scant b{font-size:14px;text-align:right}}
+@media(max-width:700px){.ctl .scant{margin:0;width:100%;gap:6px}.scant>div{flex:1 1 100%;flex-direction:row;justify-content:space-between;align-items:baseline;padding:6px 10px;min-width:0}.scant b{font-size:14px;text-align:right;white-space:nowrap}}
 .qa{display:inline-block;width:7px;height:7px;border-radius:50%;background:#8a8478;margin-left:6px;vertical-align:middle;cursor:help}
 .tabs button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);padding:6px 16px;cursor:pointer;border-radius:4px;font:inherit}
 .tabs button.on{background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:600}
