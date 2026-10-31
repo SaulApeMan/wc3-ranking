@@ -231,18 +231,51 @@ function w3cPage(){
 function actTable(title,head,list,row){
  if(!list.length)return '';
  return '<h2>'+title+'</h2><div class="tw"><table><tr>'+head+'</tr>'+list.map(row).join('')+'</table></div>'}
+var LOC={pl:'pl-PL',en:'en-GB',zh:'zh-CN',de:'de-DE'};
+function scanWhen(w,d){
+ if(!w)return esc(d);
+ var b=new Date(w[1]*1000),loc=LOC[L]||'en-GB';
+ return b.toLocaleDateString(loc,{day:'numeric',month:'short',year:'numeric'})+', '+b.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit'})}
+function agoText(t){
+ var m=Math.max(0,Math.floor((Date.now()/1000-t)/60)),d=Math.floor(m/1440),h=Math.floor(m%1440/60);
+ return (d?d+' '+T('d','d')+' ':'')+((d||h)?h+' '+T('godz.','h')+' ':'')+(m%60)+' '+T('min','min')}
+function tickAgo(){var e=document.getElementById('ago');if(e)e.textContent=agoText(+e.dataset.t)}
 function activityPage(){
  var root=document.getElementById('app'),ms=Object.keys(D.activity);
  if(!ms.length){root.innerHTML='<div class="note">'+T('Jest dopiero jeden skan rankingu (','There is only one ladder scan so far (')+esc(D.modes['1v1']?D.modes['1v1'].date:'')+T('), więc nie ma jeszcze z czym porównywać. Ta strona wypełni się po drugim skanie: kto zagrał najwięcej gier, największe skoki MMR, nowi i wypadli z rankingu.','), so there is nothing to compare yet. This page fills in after the second scan: most games played, biggest MMR jumps, newcomers and players who dropped out.')+'</div>';return}
  var st=window._sa=window._sa||{m:ms[0]};if(!D.activity[st.m])st.m=ms[0];
  var a=D.activity[st.m];
- var o='<div class="ctl"><label>'+T('Tryb','Mode')+' <select id="am">'+ms.map(function(m){return'<option'+(m==st.m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></label><span class="dim">'+esc(a.from)+' → '+esc(a.to)+'</span></div>';
- o+='<div class="cards"><div class="card"><b>'+a.new_n+'</b><span>'+T('nowi w rankingu','new in the ladder')+'</span></div></div>';
+ var o='<div class="ctl"><label>'+T('Tryb','Mode')+' <select id="am">'+ms.map(function(m){return'<option'+(m==st.m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></label>';
+ var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}
+ o+='<div class="scant"><div><span class="dim">'+T('Poprzedni skan','Previous scan')+'</span><b>'+scanWhen(a.t0,a.from)+'</b></div>'+
+  '<div><span class="dim">'+T('Aktualny skan','Current scan')+'</span><b>'+scanWhen(a.t1,a.to)+'</b></div>'+
+  (a.t1?'<div><span class="dim">'+T('Od aktualnego skanu minęło','Time since the current scan')+'</span><b id="ago" data-t="'+a.t1[1]+'">'+agoText(a.t1[1])+'</b></div>':'')+
+  '</div></div>'+(a.t0||a.t1?'<p class="dim small">'+T('Czas Twojej strefy','Your local time')+(tz?' ('+esc(tz)+')':'')+T('; podajemy chwilę zakończenia skanu.','; the time when the scan finished.')+'</p>':'');
+ var S=a.sum||{},nf=function(x){return Math.round(x).toLocaleString()};
+ var day=function(g){return S.hours>0?g/S.hours*24:null};
+ if(S.games!=null){
+  o+='<h2>'+T('Liczba gier','Number of games')+'</h2><div class="cards act">';
+  o+='<div class="card"><b>≈ '+nf(S.games)+'</b><span>'+T('Battle.net – gier między skanami','Battle.net – games between the scans')+'</span><em>≈ '+nf(day(S.games))+' '+T('na dobę','per day')+'</em></div>';
+  if(S.w3c_games!=null){
+   o+='<div class="card"><b>≈ '+nf(S.w3c_games)+'</b><span>'+T('W3Champions – w tym samym czasie','W3Champions – in the same time')+'</span><em>≈ '+nf(day(S.w3c_games))+' '+T('na dobę','per day')+'</em></div>';
+   if(S.w3c_games>0)o+='<div class="card"><b>× '+(S.games/S.w3c_games).toFixed(1)+'</b><span>'+T('tyle razy więcej gier na Battle.net','times more games on Battle.net')+'</span><em>'+(S.games/(S.games+S.w3c_games)*100).toFixed(0)+'% '+T('wszystkich gier obu serwisów','of all games of both services')+'</em></div>'}
+  o+='</div>'}
+ o+='<h2>'+T('Gracze','Players')+'</h2><div class="cards act">';
+ if(S.pairs)o+='<div class="card"><b>'+nf(S.active)+' <small>'+(S.active/S.pairs*100).toFixed(0)+'%</small></b><span>'+T('aktywnych graczy (min. 1 gra)','active players (1+ game)')+'</span></div>';
+ o+='<div class="card"><b>'+nf(a.new_n)+'</b><span>'+T('nowi w rankingu','new in the ladder')+'</span></div>';
+ if(S.pairs)o+='<div class="card"><b><i class="up">▲ '+nf(S.up)+'</i> <i class="down">▼ '+nf(S.down)+'</i></b><span>'+T('awanse / spadki ligi','league promotions / demotions')+'</span></div>';
+ o+='</div>';
+ if(S.races&&S.races.length){var tot=S.races.reduce(function(x,y){return x+y[1]},0);
+  var rs=S.races.slice().sort(function(x,y){return y[1]-x[1]});
+  o+='<h2>'+T('Gry według ras','Games by race')+'</h2><div class="rbar">'+rs.map(function(x){return'<span style="width:'+(x[1]/tot*100).toFixed(2)+'%;background:var(--'+RC[x[0]]+')" title="'+esc(rn(x[0]))+'"></span>'}).join('')+'</div>';
+  o+='<div class="rleg">'+rs.map(function(x){return'<span><i style="background:var(--'+RC[x[0]]+')"></i>'+esc(rn(x[0]))+' <b>'+(x[1]/tot*100).toFixed(0)+'%</b> <span class="dim">'+nf(x[1])+'</span></span>'}).join('')+'</div>'}
+ if(S.pairs)o+='<p class="dim small">'+T('Liczby z ','Numbers from ')+nf(S.pairs)+T(' graczy rozpoznanych po BattleTagu w obu skanach. Liczbę gier szacujemy: suma nowych wygranych i przegranych (',' players recognised by BattleTag in both scans. The number of games is an estimate: all new wins and losses (')+nf(S.pg)+T(') podzielona przez liczbę graczy w jednej grze. Gry ras liczone po stronie każdego gracza.',') divided by the number of players in one game. Games by race are counted on each player’s side.')+(S.w3c_games!=null?' '+T('W3Champions podaje gry na dobę (UTC); doby liczymy proporcjonalnie do godzin, które mieszczą się między skanami.','W3Champions publishes games per day (UTC); each day counts in proportion to the hours that fall between the scans.'):'')+'</p>';
  o+=actTable(T('Najwięcej rozegranych gier','Most games played'),'<th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">'+T('Gry','Games')+'</th><th class="n">MMR</th>',a.games.filter(function(r){return r[2]>0}),function(r){return'<tr><td>'+icon(r[5])+nm(r[0])+'</td><td>'+rc(r[1])+'</td><td class="n">'+r[2]+'</td><td class="n">'+r[4]+'</td></tr>'});
  o+=actTable(T('Największe zmiany MMR','Biggest MMR changes'),'<th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">'+T('Zmiana','Change')+'</th><th class="n">'+T('Było','Was')+'</th><th class="n">'+T('Jest','Now')+'</th>',a.jumps,function(r){return'<tr><td>'+icon(r[5])+nm(r[0])+'</td><td>'+rc(r[1])+'</td><td class="n">'+sgn(r[2])+'</td><td class="n">'+r[3]+'</td><td class="n">'+r[4]+'</td></tr>'});
  o+=actTable(T('Nowi w rankingu','New in the ladder'),'<th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">MMR</th>',a.new,function(r){return'<tr><td>'+icon(r[3])+nm(r[0])+'</td><td>'+rc(r[1])+'</td><td class="n">'+r[2]+'</td></tr>'});
  o+='<p class="dim">'+T('Różnice liczone ze skanów odczytywanych przez OCR; pojedyncze wartości mogą być błędne. Gracze dopasowani po nicku, rasie i ikonie (przy zmianie ikony po nicku i rasie).','Differences are computed from OCR-read scans; single values may be wrong. Players are matched by nick, race and icon (by nick and race when the icon changed).')+'</p>';
- root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;activityPage()}}
+ root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;activityPage()};
+ if(!window._agoT)window._agoT=setInterval(tickAgo,20000)}
 function homePage(){
  var m=D.modes['1v1'],rc_=m.races,o='<div class="cards">';
  o+='<div class="card"><b>'+m.rows.toLocaleString()+'</b><span>'+T('wierszy rankingu 1v1','1v1 ladder rows')+'</span></div>';

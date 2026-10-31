@@ -26,6 +26,19 @@ tr:hover td{background:#251e15}.tw{overflow-x:auto}
 .pbar span{display:block;height:100%;background:var(--gold)}.pbar.s span{background:#6fd16f}
 td.small{font-size:13px}
 @media(max-width:700px){.pbar{width:60px}}
+.cards.act .card b i{font-style:normal}
+.cards.act .card em{display:block;font-style:normal;font-size:13px;color:var(--ink);margin-top:4px}
+.cards.act .card small{font-size:14px;color:var(--dim);font-weight:400}
+.rbar{display:flex;height:18px;border-radius:9px;overflow:hidden;border:1px solid var(--line);margin:6px 0 8px}
+.rbar span{display:block;height:100%}
+.rleg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px}
+.rleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.scant{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 0 8px}
+.scant>div{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;min-width:200px}
+.scant b{font-size:16px}
+#ago{color:var(--gold);font-variant-numeric:tabular-nums}
+p.small{font-size:13px;margin-top:2px}
+@media(max-width:700px){.ctl .scant{margin:0;width:100%;gap:6px}.scant>div{flex:1 1 100%;flex-direction:row;justify-content:space-between;align-items:baseline;padding:6px 10px;min-width:0}.scant b{font-size:14px;text-align:right}}
 .qa{display:inline-block;width:7px;height:7px;border-radius:50%;background:#8a8478;margin-left:6px;vertical-align:middle;cursor:help}
 .tabs button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);padding:6px 16px;cursor:pointer;border-radius:4px;font:inherit}
 .tabs button.on{background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:600}
