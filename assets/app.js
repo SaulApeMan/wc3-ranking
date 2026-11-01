@@ -34,9 +34,12 @@ var SORTS={rank:function(r){return r[0]},mmr:function(r){return r[3]},games:game
 function lgname(id){var l=D.leagues[id];if(!l)return '?';var nm=l[L=='en'?'name':L]||l.name;return nm||T('Dywizja ','Division ')+l.n}
 function lgopt(id){var l=D.leagues[id];return l&&l.name?lgname(id)+' ('+T('Dywizja ','Division ')+l.n+')':lgname(id)}
 function lgcell(id){var l=D.leagues[id];if(!l)return '<span class="dim">–</span>';return (l.img?'<img class="lg" src="'+esc(l.img)+'" alt="'+esc(lgname(id))+'" title="'+esc(lgname(id))+'" loading="lazy">':'')+'<span class="lgn">'+esc(lgname(id))+'</span>'}
+function knownMap(m){var k={};(m.known||[]).forEach(function(x){k[x[0]]=x});return k}
+function knownBadge(k,name){if(!k)return '';var same=name&&name.toLowerCase()==k[2].toLowerCase();
+ return ' <span class="kn '+(k[1]=='p'?'kp':'kf')+'" title="'+esc(k[1]=='p'?T('Zawodowiec – najlepsza 25 rankingu Elo warcraft3.info','Pro player – top 25 of the warcraft3.info Elo ranking'):T('Znany gracz','Famous player'))+': '+esc(k[2])+'">'+(k[1]=='p'?'PRO':'★')+(same?'':' · '+esc(k[2]))+'</span>'}
 function rankingPage(){
  var root=document.getElementById('app'),ms=Object.keys(D.modes);
- var st=window._st=window._st||{m:QS.get('mode')||'1v1',race:QS.get('race')||'',icon:QS.get('icon')||'',league:QS.get('league')||'',q:QS.get('q')||'',sort:SORTS[QS.get('sort')]?QS.get('sort'):'rank',dir:QS.get('dir')=='-1'?-1:1,min:+QS.get('min')||0,shown:100};
+ var st=window._st=window._st||{m:QS.get('mode')||'1v1',race:QS.get('race')||'',icon:QS.get('icon')||'',league:QS.get('league')||'',q:QS.get('q')||'',sort:SORTS[QS.get('sort')]?QS.get('sort'):'rank',dir:QS.get('dir')=='-1'?-1:1,min:+QS.get('min')||0,shown:100,who:QS.get('who')||''};
  if(!D.modes[st.m])st.m='1v1';
  var m=D.modes[st.m];
  var sopts=[['rank',T('miejsce w rankingu','ladder rank')],['mmr','MMR'],['games',T('liczba gier','games played')],['wins',T('wygrane','wins')],['losses',T('przegrane','losses')],['wr',T('% wygranych','win %')],['level',T('poziom','level')]];
@@ -44,23 +47,26 @@ function rankingPage(){
  o+='<label>'+T('Rasa','Race')+' <select id="fr"><option value="">'+T('wszystkie','all')+'</option>'+D.races.map(function(r){return'<option value="'+r+'"'+(r==st.race?' selected':'')+'>'+esc(rn(r))+'</option>'}).join('')+'</select></label>';
  o+='<label>'+T('Ikona','Icon')+' <select id="fi"><option value="">'+T('wszystkie','all')+'</option>'+m.icons.map(function(i){return'<option value="'+i[0]+'"'+(i[0]==st.icon?' selected':'')+'>'+esc(iname(i[0]))+' ('+i[1]+')</option>'}).join('')+'</select></label>';
  o+='<label>'+T('Liga','League')+' <select id="fl"><option value="">'+T('wszystkie','all')+'</option>'+Object.keys(D.leagues).map(function(k){return'<option value="'+k+'"'+(k==st.league?' selected':'')+'>'+lgopt(k)+'</option>'}).join('')+'</select></label>';
+ o+='<label>'+T('Gracze','Players')+' <select id="fk">'+[['',T('wszyscy','all')],['p',T('zawodowcy','pro players')],['f',T('znani','famous')],['pf',T('zawodowcy i znani','pro + famous')]].map(function(x){return'<option value="'+x[0]+'"'+(x[0]==st.who?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></label>';
  o+='<label>'+T('Szukaj','Search')+' <input id="fq" value="'+esc(st.q)+'" placeholder="'+T('nazwa','name')+'"></label>';
  o+='<label>'+T('Sortuj','Sort')+' <select id="fs">'+sopts.map(function(x){return'<option value="'+x[0]+'"'+(x[0]==st.sort?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></label>';
  o+='<label><select id="fd"><option value="1"'+(st.dir==1?' selected':'')+'>'+T('rosnąco','ascending')+'</option><option value="-1"'+(st.dir==-1?' selected':'')+'>'+T('malejąco','descending')+'</option></select></label>';
  o+='<label>'+T('Min. gier','Min. games')+' <input id="fg" type="number" min="0" value="'+st.min+'" style="width:80px"></label></div>';
- var rows=m.top.filter(function(r){return(!st.race||r[2]==st.race)&&(!st.icon||r[7]==st.icon)&&(!st.league||r[9]==st.league)&&(!st.q||(r[1]||'').toLowerCase().indexOf(st.q.toLowerCase())>=0)&&games(r)>=st.min});
+ var KN=knownMap(m);
+ var rows=m.top.filter(function(r){var k=KN[r[0]];return(!st.race||r[2]==st.race)&&(!st.icon||r[7]==st.icon)&&(!st.league||r[9]==st.league)&&(!st.who||(k&&st.who.indexOf(k[1])>=0))
+  &&(!st.q||((r[1]||'')+' '+(k?k[2]:'')).toLowerCase().indexOf(st.q.toLowerCase())>=0)&&games(r)>=st.min});
  var f=SORTS[st.sort];rows=rows.slice().sort(function(a,b){return(f(a)-f(b))*st.dir||a[0]-b[0]});
  o+='<div class="note">'+T('Skan z ','Scan of ')+esc(m.date)+' · '+m.rows.toLocaleString()+T(' wierszy',' rows')+(m.sample?T(' (próbka: tylko pierwsze strony rankingu)',' (sample: first pages of the ladder only)'):'')+(m.partial?' · <b class="down">'+T('skan niepełny – część rankingu','incomplete scan – part of the ladder only')+'</b>':'')+' · '+T('mediana MMR ','median MMR ')+m.mmr_median+' · <b>'+rows.length.toLocaleString()+'</b> '+T('pasuje do filtrów','match the filters')+'<br><span class="dim">'+T('Miejsce w rankingu gry wynika z poziomu konta, nie z MMR – żeby zobaczyć najsilniejszych graczy, sortuj po MMR.','The in-game ladder rank follows account level, not MMR – sort by MMR to see the strongest players.')+'</span></div>';
  o+='<div class="tw"><table><tr><th class="n">#</th><th>'+T('Gracz','Player')+'</th>'+(Object.keys(D.leagues).length?'<th>'+T('Liga','League')+'</th>':'')+'<th class="n">'+T('Poz.','Lvl')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">MMR</th><th class="n">'+T('Wygr.','Wins')+'</th><th class="n">'+T('Przegr.','Losses')+'</th><th class="n">'+T('Gry','Games')+'</th><th class="n">%</th></tr>';
- rows.slice(0,st.shown).forEach(function(r){var g=games(r);o+='<tr><td class="n">'+r[0]+'</td><td>'+icon(r[7])+nm(r[1],r[8],r[0])+qa(r)+'</td>'+(Object.keys(D.leagues).length?'<td>'+lgcell(r[9])+'</td>':'')+'<td class="n">'+(r[6]==null?'<span class="dim">–</span>':r[6])+'</td><td>'+rc(r[2])+'</td><td class="n">'+r[3]+'</td><td class="n">'+r[4]+'</td><td class="n">'+r[5]+'</td><td class="n">'+g+'</td><td class="n">'+(g?Math.round(r[4]/g*100):0)+'</td></tr>'});
+ rows.slice(0,st.shown).forEach(function(r){var g=games(r);o+='<tr><td class="n">'+r[0]+'</td><td>'+icon(r[7])+nm(r[1],r[8],r[0])+qa(r)+knownBadge(KN[r[0]],r[1])+'</td>'+(Object.keys(D.leagues).length?'<td>'+lgcell(r[9])+'</td>':'')+'<td class="n">'+(r[6]==null?'<span class="dim">–</span>':r[6])+'</td><td>'+rc(r[2])+'</td><td class="n">'+r[3]+'</td><td class="n">'+r[4]+'</td><td class="n">'+r[5]+'</td><td class="n">'+g+'</td><td class="n">'+(g?Math.round(r[4]/g*100):0)+'</td></tr>'});
  o+='</table></div><p class="dim">'+T('Pokazano ','Showing ')+Math.min(st.shown,rows.length)+T(' z ',' of ')+rows.length.toLocaleString()+(rows.length>st.shown?' · <a href="#" id="more">'+T('pokaż 200 więcej','show 200 more')+'</a>':'')+'</p>';
  o+='<h2>'+T('Rozkład MMR','MMR distribution')+'</h2><div class="grid2"><div id="h1" class="card"></div><div id="h2" class="card"></div></div>';
  root.innerHTML=o;
  hist(document.getElementById('h1'),st.m,'');
  var r2=st.race||'Orc';document.getElementById('h2').insertAdjacentHTML('afterbegin','<b class="'+RC[r2]+'">'+esc(rn(r2))+'</b>');
  var w=document.createElement('div');document.getElementById('h2').appendChild(w);hist(w,st.m,r2);
- function rd(){st.league=document.getElementById('fl').value;st.m=document.getElementById('fm').value;st.race=document.getElementById('fr').value;st.sort=document.getElementById('fs').value;st.dir=+document.getElementById('fd').value;st.min=+document.getElementById('fg').value||0;st.shown=100}
- ['fm','fr','fs','fd','fg','fi','fl'].forEach(function(id){document.getElementById(id).onchange=function(){var pm=st.m;rd();st.icon=(id=='fm'&&pm!=st.m)?'':document.getElementById('fi').value;rankingPage()}});
+ function rd(){st.league=document.getElementById('fl').value;st.who=document.getElementById('fk').value;st.m=document.getElementById('fm').value;st.race=document.getElementById('fr').value;st.sort=document.getElementById('fs').value;st.dir=+document.getElementById('fd').value;st.min=+document.getElementById('fg').value||0;st.shown=100}
+ ['fm','fr','fs','fd','fg','fi','fl','fk'].forEach(function(id){document.getElementById(id).onchange=function(){var pm=st.m;rd();st.icon=(id=='fm'&&pm!=st.m)?'':document.getElementById('fi').value;rankingPage()}});
  var q=document.getElementById('fq');q.oninput=function(){st.q=q.value;st.shown=100;var p=q.selectionStart;rankingPage();var n=document.getElementById('fq');n.focus();n.setSelectionRange(p,p)};
  var mo=document.getElementById('more');if(mo)mo.onclick=function(e){e.preventDefault();st.shown+=200;rankingPage()};
 }
