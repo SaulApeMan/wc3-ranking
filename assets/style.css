@@ -27,6 +27,17 @@ tr:hover td{background:#251e15}.tw{overflow-x:auto}
 td.small{font-size:13px}
 @media(max-width:700px){.pbar{width:60px}}
 .cards.act .card b i{font-style:normal}
+details.rqcat>summary,details.rqsub>summary{list-style:none;cursor:pointer;user-select:none}
+details.rqcat>summary::-webkit-details-marker,details.rqsub>summary::-webkit-details-marker{display:none}
+details.rqcat>summary h2,details.rqsub>summary h3{display:inline-block}
+details.rqcat>summary::before,details.rqsub>summary::before{content:'\25B8';display:inline-block;width:1.1em;color:var(--gold);transition:transform .15s}
+details.rqcat[open]>summary::before,details.rqsub[open]>summary::before{transform:rotate(90deg)}
+details.rqcat>summary::before{font-size:22px;vertical-align:-1px}details.rqsub>summary::before{font-size:17px}
+details.rqsub{margin-left:4px}
+.rqnav{gap:6px 14px}.rqnav a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:14px;padding:3px 10px;background:var(--panel2)}
+.rqnav a:hover{border-color:var(--gold)}.rqbtn{margin-left:auto;display:flex;gap:6px}
+.rqbtn button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 10px;cursor:pointer;font:inherit;font-size:13px}
+@media(max-width:700px){.rqbtn{margin-left:0;width:100%}.rqbtn button{flex:1}}
 .kn{display:inline-block;font-size:11px;font-weight:700;line-height:1;padding:3px 6px;border-radius:9px;margin-left:6px;vertical-align:1px;white-space:nowrap}
 .kn.kp{background:rgba(217,165,33,.18);color:var(--gold);border:1px solid rgba(217,165,33,.55)}
 .kn.kf{background:rgba(127,196,255,.14);color:#9fd0ff;border:1px solid rgba(127,196,255,.45)}

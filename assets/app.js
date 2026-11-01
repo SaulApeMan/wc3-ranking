@@ -129,24 +129,38 @@ function recordsPage(){
 function ictabs(st){return '<div class="ctl tabs"><button data-v="players" class="'+(st.view!='req'?'on':'')+'">'+T('Ikony graczy','Player icons')+'</button><button data-v="req" class="'+(st.view=='req'?'on':'')+'">'+T('Wymagania ikon','Icon requirements')+'</button></div>'}
 function ictabsBind(st){document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){st.view=b.getAttribute('data-v');iconsPage()}})}
 function reqPage(st){
+ // Saul 2026-11-01: every category and sub-group folds (one click on its heading); quick links + collapse / expand all;
+ // what a visitor folded is remembered in this browser only (localStorage, ignored when blocked)
  var root=document.getElementById('app'),o=ictabs(st);
  var cnt={};((D.modes['1v1']||{top:[]}).top).forEach(function(r){if(r[7])cnt[r[7]]=(cnt[r[7]]||0)+1});
  var cats=[['free',T('Darmowe ikony','Free icons')],['wins',T('Wygrane w grach rankingowych','Matchmaking wins')],['tournament',T('Wygrane w turniejach','Tournament wins')],['campaign',T('Ukończenie kampanii','Campaign completion')],['special',T('Ikony specjalne (wymaganie nieznane)','Special icons (requirement not shown)')]];
  var all=Object.keys(D.icons).filter(function(id){return D.icons[id].cat});
- o+='<div class="note">'+T('Co trzeba zrobić, aby odblokować każdą ikonę portretu, pogrupowane w kategorie. Liczba graczy pochodzi z ostatniego skanu 1v1.','What you need to do to unlock each portrait icon, grouped by category. Player counts come from the latest 1v1 scan.')+'</div>';
+ var closed={};try{closed=JSON.parse(localStorage.getItem('rqClosed')||'{}')||{}}catch(e){closed=window._rqc||{}}
+ o+='<div class="note">'+T('Co trzeba zrobić, aby odblokować każdą ikonę portretu, pogrupowane w kategorie. Liczba graczy pochodzi z ostatniego skanu 1v1. Kliknij nagłówek, aby zwinąć lub rozwinąć grupę.','What you need to do to unlock each portrait icon, grouped by category. Player counts come from the latest 1v1 scan. Click a heading to fold or unfold a group.')+'</div>';
+ o+='<div class="ctl rqnav"><span class="dim">'+T('Przejdź do:','Jump to:')+'</span>'+cats.filter(function(c){return all.some(function(id){return D.icons[id].cat==c[0]})}).map(function(c){
+  return '<a href="#rq-'+c[0]+'" data-go="'+c[0]+'">'+c[1]+' <span class="dim">'+all.filter(function(id){return D.icons[id].cat==c[0]}).length+'</span></a>'}).join('')+
+  '<span class="rqbtn"><button id="rqc">'+T('Zwiń wszystko','Collapse all')+'</button><button id="rqe">'+T('Rozwiń wszystko','Expand all')+'</button></span></div>';
  function sub(id){var c=D.icons[id];return c.cat=='wins'?rn(c.sub):c.cat=='free'?((c.sec||{})[L]||(c.sec||{}).en||''):''}
+ function subKey(id){var c=D.icons[id];return c.cat=='wins'?(c.sub||''):c.cat=='free'?((c.sec||{}).en||''):''}
  cats.forEach(function(c){
   var ids=all.filter(function(id){return D.icons[id].cat==c[0]});if(!ids.length)return;
-  o+='<h2>'+c[1]+' <span class="dim">('+ids.length+')</span></h2>';
+  o+='<details class="rqcat" id="rq-'+c[0]+'" data-k="'+c[0]+'"'+(closed[c[0]]?'':' open')+'><summary><h2>'+c[1]+' <span class="dim">('+ids.length+')</span></h2></summary>';
   var groups={},order=[];
   ids.forEach(function(id){var s=sub(id);if(!groups[s]){groups[s]=[];order.push(s)}groups[s].push(id)});
   order.forEach(function(s){
    var g=groups[s].sort(function(a,b){return (D.icons[a].n||0)-(D.icons[b].n||0)||iname(a).localeCompare(iname(b))});
-   if(s)o+='<h3>'+esc(s)+' <span class="dim">('+g.length+')</span></h3>';
-   o+='<div class="rqgrid">'+g.map(function(id){var i=D.icons[id],d=(i.desc||{})[L]||(i.desc||{}).en||T('Wymaganie nie jest podane w grze','Requirement is not shown in the game');
-    return '<div class="rq"><img class="big" src="'+(i.big?'icons-large/'+id+'.png':'icons/icon-'+id+'.png')+'" alt="" loading="lazy"><b>'+esc(iname(id))+'</b><span>'+esc(d)+'</span><small>'+T('Graczy w 1v1: ','Players in 1v1: ')+(cnt[id]||0).toLocaleString()+'</small></div>'}).join('')+'</div>'});
+   var grid='<div class="rqgrid">'+g.map(function(id){var i=D.icons[id],d=(i.desc||{})[L]||(i.desc||{}).en||T('Wymaganie nie jest podane w grze','Requirement is not shown in the game');
+    return '<div class="rq"><img class="big" src="'+(i.big?'icons-large/'+id+'.png':'icons/icon-'+id+'.png')+'" alt="" loading="lazy"><b>'+esc(iname(id))+'</b><span>'+esc(d)+'</span><small>'+T('Graczy w 1v1: ','Players in 1v1: ')+(cnt[id]||0).toLocaleString()+'</small></div>'}).join('')+'</div>';
+   if(s){var k=c[0]+'|'+subKey(g[0]);o+='<details class="rqsub" data-k="'+esc(k)+'"'+(closed[k]?'':' open')+'><summary><h3>'+esc(s)+' <span class="dim">('+g.length+')</span></h3></summary>'+grid+'</details>'}
+   else o+=grid});
+  o+='</details>';
  });
  root.innerHTML=o;ictabsBind(st);
+ function save(){window._rqc=closed;try{localStorage.setItem('rqClosed',JSON.stringify(closed))}catch(e){}}
+ root.querySelectorAll('details[data-k]').forEach(function(d){d.addEventListener('toggle',function(){if(d.open)delete closed[d.dataset.k];else closed[d.dataset.k]=1;save()})});
+ document.getElementById('rqc').onclick=function(){root.querySelectorAll('details[data-k]').forEach(function(d){d.open=false})};
+ document.getElementById('rqe').onclick=function(){root.querySelectorAll('details[data-k]').forEach(function(d){d.open=true})};
+ root.querySelectorAll('a[data-go]').forEach(function(x){x.onclick=function(e){e.preventDefault();var d=document.getElementById('rq-'+x.dataset.go);if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})}}});
 }
 function leagueIcons(m){
  // Icons by league: share of ladder rows in each league that use the icon, and portrait categories by league
@@ -212,9 +226,17 @@ function w3cByLeague(){
  o+='</table></div>';
  if(S.rho!=null)o+='<p class="note">'+T('Rankingi obu serwisów mocno się zgadzają: korelacja miejsc (Spearman) wynosi ','The two ladders agree strongly: the rank correlation (Spearman) is ')+S.rho.toFixed(2)+T(' dla ',' for ')+S.n.toLocaleString()+T(' graczy grających w obecnym sezonie. Porównujemy tylko kolejność graczy, nie liczby MMR, bo skale są różne.',' players of the current season. Only the order of players is compared, not the MMR numbers, because the scales differ.')+'</p>';
  return o}
+function w3c2ByLeague(){
+ var S=D.w3c2||{};if(!S.by_league||!S.by_league.length)return '';
+ var o='<h2>'+T('W3Champions według ligi Battle.net 2v2','W3Champions by Battle.net 2v2 league')+'</h2><p class="dim">'+T('Ilu graczy rankingu 2v2 (po BattleTagu, liga z najlepszego wpisu) grało kiedyś w 2v2 Random Team na W3Champions i ilu ma tam konto 1v1.','How many 2v2 ladder players (by BattleTag, league of their best entry) have ever played 2v2 Random Team on W3Champions, and how many have a 1v1 account there.')+'</p>';
+ o+='<div class="tw"><table class="w3bars"><tr><th>'+T('Liga','League')+'</th><th class="n">'+T('Gracze','Players')+'</th><th>'+T('Konto W3C 2v2','W3C 2v2 account')+'</th><th>'+T('Konto W3C 1v1','W3C 1v1 account')+'</th></tr>';
+ S.by_league.forEach(function(x){var a=x[2]/x[1]*100,b=x[3]/x[1]*100;
+  o+='<tr><td>'+lgcell(x[0])+'</td><td class="n">'+x[1].toLocaleString()+'</td><td><div class="pbar"><span style="width:'+a.toFixed(1)+'%"></span></div>'+a.toFixed(1)+'%</td><td><div class="pbar s"><span style="width:'+b.toFixed(1)+'%"></span></div>'+b.toFixed(1)+'%</td></tr>'});
+ return o+'</table></div>'}
 function w3cPage(){
- var root=document.getElementById('app'),W=D.w3c||{accounts:[],season:null};
- var st=window._sw=window._sw||{q:QS.get('q')||'',league:QS.get('league')||'',race:QS.get('race')||'',cur:QS.get('current')||'',sort:QS.get('sort')||'rank',dir:QS.get('dir')=='-1'?-1:1,shown:100};
+ var st=window._sw=window._sw||{mode:QS.get('mode')=='2v2'?'2v2':'1v1',q:QS.get('q')||'',league:QS.get('league')||'',race:QS.get('race')||'',cur:QS.get('current')||'',sort:QS.get('sort')||'rank',dir:QS.get('dir')=='-1'?-1:1,shown:100};
+ if(st.mode=='2v2'&&!(D.w3c2&&D.w3c2.accounts.length))st.mode='1v1';
+ var two=st.mode=='2v2',root=document.getElementById('app'),W=(two?D.w3c2:D.w3c)||{accounts:[],season:null};
  var q=st.q.toLowerCase();
  var keyf={rank:function(a){return a.rank},bmmr:function(a){return a.bmmr},wmmr:function(a){return a.wmmr||0},level:function(a){return a.level||0},season:function(a){return a.season||0},name:function(a){return (a.name||a.tag).toLowerCase()}};
  var list=W.accounts.filter(function(a){
@@ -222,9 +244,12 @@ function w3cPage(){
  var f=keyf[st.sort]||keyf.rank;
  list.sort(function(a,b){var x=f(a),y=f(b);var c=x<y?-1:x>y?1:0;return (c*st.dir)||(a.rank-b.rank)});
  var cur=W.accounts.filter(function(a){return a.current}).length;
- var o='<div class="note">'+T('Gracze z rankingu Battle.net 1v1, którzy kiedykolwiek grali na W3Champions (dowolny sezon), z potwierdzonym BattleTagiem. MMR na W3Champions i MMR na Battle.net mają różne skale (około 1000–3000 kontra do około 6600), więc nie porównuj ich wprost.','Players from the Battle.net 1v1 ladder who have ever played on W3Champions (any season), with a confirmed BattleTag. W3Champions MMR and Battle.net MMR use different scales (about 1000-3000 versus up to about 6600), so do not compare them directly.')+'</div>';
+ var o=(D.w3c2&&D.w3c2.accounts.length?'<div class="ctl tabs"><button data-wm="1v1" class="'+(two?'':'on')+'">1v1</button><button data-wm="2v2" class="'+(two?'on':'')+'">2v2</button></div>':'');
+ if(two)o+='<div class="note">'+T('Gracze z rankingu Battle.net 2v2, którzy kiedykolwiek grali w 2v2 Random Team na W3Champions (dowolny sezon), dopasowani dokładnie po BattleTagu. MMR W3Champions to MMR 2v2 z ostatniego sezonu gracza; skale obu serwisów są różne. W3Champions 2v2 Random Team prawie nie jest dziś grane – w obecnym sezonie gra tam niewielu graczy.','Players from the Battle.net 2v2 ladder who have ever played 2v2 Random Team on W3Champions (any season), matched exactly by BattleTag. The W3Champions MMR is the 2v2 MMR of the player\'s last season; the two scales differ. W3Champions 2v2 Random Team is hardly played today – few players play it in the current season.')+'</div>';
+ else o+='<div class="note">'+T('Gracze z rankingu Battle.net 1v1, którzy kiedykolwiek grali na W3Champions (dowolny sezon), z potwierdzonym BattleTagiem. MMR na W3Champions i MMR na Battle.net mają różne skale (około 1000–3000 kontra do około 6600), więc nie porównuj ich wprost.','Players from the Battle.net 1v1 ladder who have ever played on W3Champions (any season), with a confirmed BattleTag. W3Champions MMR and Battle.net MMR use different scales (about 1000-3000 versus up to about 6600), so do not compare them directly.')+'</div>';
  o+='<div class="cards"><div class="card"><b>'+W.accounts.length.toLocaleString()+'</b><span>'+T('graczy w obu miejscach','players in both')+'</span></div><div class="card"><b>'+cur.toLocaleString()+'</b><span>'+T('grało w sezonie ','played in season ')+W.season+'</span></div></div>';
- o+=w3cByLeague();
+ if(two){var w1=(D.w3c2.by_league||[]).reduce(function(s,x){return s+x[3]},0);o=o.replace(/<\/div><\/div>$/,'</div><div class="card"><b>'+w1.toLocaleString()+'</b><span>'+T('graczy 2v2 z kontem W3C 1v1','2v2 players with a W3C 1v1 account')+'</span></div></div>')}
+ o+=two?w3c2ByLeague():w3cByLeague();
  var sopts=[['rank',T('miejsce w rankingu','ladder rank')],['bmmr',T('MMR Battle.net','Battle.net MMR')],['wmmr',T('MMR W3Champions','W3Champions MMR')],['level',T('poziom','level')],['season',T('ostatni sezon W3C','last W3C season')],['name',T('nazwa','name')]];
  o+='<div class="ctl"><label>'+T('Szukaj','Search')+' <input id="wq" value="'+esc(st.q)+'" placeholder="'+T('nazwa lub BattleTag','name or BattleTag')+'"></label>';
  o+='<label>'+T('Liga','League')+' <select id="wl"><option value="">'+T('wszystkie','all')+'</option>'+Object.keys(D.leagues).map(function(k){return'<option value="'+k+'"'+(k==st.league?' selected':'')+'>'+lgopt(k)+'</option>'}).join('')+'</select></label>';
@@ -239,6 +264,7 @@ function w3cPage(){
   o+='<tr><td class="n">'+a.rank+'</td><td>'+(a.icon?icon(a.icon):'')+(a.name?esc(a.name):'')+(a.qa?'<span class="qa" title="'+esc(T('odczyt do sprawdzenia','reading to be checked'))+'"></span>':'')+'<br><span class="dim">'+esc(a.tag)+'</span></td><td>'+lgcell(a.bleague)+'</td><td class="n">'+(a.level==null?'<span class="dim">–</span>':a.level)+'</td><td>'+rc(a.race)+'</td><td class="n">'+a.bmmr+'</td><td class="n">'+(a.wmmr==null?'–':a.wmmr)+(sub.length?'<br><span class="dim">'+esc(sub.join(' · '))+'</span>':'')+'</td><td>'+season+'</td><td><a href="https://w3champions.com/player/'+encodeURIComponent(a.tag)+'" target="_blank" rel="noopener noreferrer">'+T('profil','profile')+' ↗</a></td></tr>'});
  o+='</table></div><p class="dim">'+T('Pokazano ','Showing ')+Math.min(st.shown,list.length)+T(' z ',' of ')+list.length.toLocaleString()+(list.length>st.shown?' · <a href="#" id="wmore">'+T('pokaż 200 więcej','show 200 more')+'</a>':'')+'</p>';
  root.innerHTML=o;
+ document.querySelectorAll('button[data-wm]').forEach(function(b){b.onclick=function(){st.mode=b.dataset.wm;st.shown=100;st.cur='';w3cPage()}});
  function rd(){st.league=document.getElementById('wl').value;st.race=document.getElementById('wr').value;st.cur=document.getElementById('wc').value;st.sort=document.getElementById('ws').value;st.dir=+document.getElementById('wd').value;st.shown=100;w3cPage()}
  ['wl','wr','wc','ws','wd'].forEach(function(id){document.getElementById(id).onchange=rd});
  var qi=document.getElementById('wq');qi.oninput=function(){st.q=qi.value;st.shown=100;var p=qi.selectionStart;w3cPage();var n=document.getElementById('wq');n.focus();n.setSelectionRange(p,p)};
