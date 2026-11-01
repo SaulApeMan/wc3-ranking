@@ -309,7 +309,8 @@ function activityPage(){
   {k:'p',h:'%',n:1,v:function(o){return pct(o.w,o.l)},td:function(o){var p=pct(o.w,o.l);return p==null?dash:Math.round(p)}}];
  var KCOLS=[{k:'nick',h:T('Znany jako','Known as'),v:function(o){return (o.pro||'').toLowerCase()},td:function(o){return '<b>'+esc(o.pro||'')+'</b>'}}].concat(COLS);
  st.sort=st.sort||{};
- function sTable(id,title,key,list,sub,empty,cols){
+ st.more=st.more||{};
+ function sTable(id,title,key,list,sub,empty,cols,lim){
   var COLS_=cols||COLS;
   if(!list.length)return empty?'<h2>'+title+'</h2>'+(sub?'<p class="dim small">'+sub+'</p>':'')+'<div class="note">'+empty+'</div>':'';
   var kc=COLS_.map(function(c){return c.k}).indexOf(key),s=st.sort[id],rows=list.slice();
@@ -319,21 +320,23 @@ function activityPage(){
   function cls(k,n){return 'c-'+k.k+(k.n?' n':'')+(n==kc?' key':'')}
   return '<h2>'+title+'</h2>'+(sub?'<p class="dim small">'+sub+'</p>':'')+'<div class="tw"><table class="srt" data-kc="'+kc+'"><tr>'+COLS_.map(function(k,n){
    return'<th data-st="'+id+'" data-c="'+n+'" data-n="'+(k.n||k.hi?1:0)+'" class="'+cls(k,n)+'">'+k.h+(n==on?' <span class="sa">'+(dn?'▼':'▲')+'</span>':'')+'</th>'}).join('')+'</tr>'+
-   rows.map(function(o){return'<tr>'+COLS_.map(function(k,n){return'<td class="'+cls(k,n)+'">'+k.td(o)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'}
- o+=sTable('g',T('Najwięcej rozegranych gier','Most games played'),'g',a.games.filter(function(r){return r[2]>0}).map(pairRow));
- o+=sTable('j',T('Największe zmiany MMR','Biggest MMR changes'),'chg',a.jumps.map(pairRow),T('Gracze, którzy przed oknem mieli co najmniej 25 gier – nowe konta w kalibracji zmieniają MMR nawet o 300 na grę.','Players with at least 25 games before the window – new accounts in placement move up to 300 MMR per game.'));
- o+=sTable('n',T('Nowi w rankingu','New in the ladder'),'mmr',a.new.map(newRow));
+   rows.slice(0,lim&&!st.more[id]?lim:rows.length).map(function(o){return'<tr>'+COLS_.map(function(k,n){return'<td class="'+cls(k,n)+'">'+k.td(o)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'+
+   (lim&&rows.length>lim?'<p class="dim small more"><a href="#" data-more="'+id+'">'+(st.more[id]?T('Pokaż mniej','Show less'):T('Pokaż wszystkie','Show all')+' ('+rows.length+')')+'</a></p>':'')}
+ o+=sTable('g',T('Najwięcej rozegranych gier','Most games played'),'g',a.games.filter(function(r){return r[2]>0}).map(pairRow),null,null,null,10);
+ o+=sTable('j',T('Największe zmiany MMR','Biggest MMR changes'),'chg',a.jumps.map(pairRow),T('Gracze, którzy przed oknem mieli co najmniej 25 gier – nowe konta w kalibracji zmieniają MMR nawet o 300 na grę.','Players with at least 25 games before the window – new accounts in placement move up to 300 MMR per game.'),null,null,10);
+ o+=sTable('n',T('Nowi w rankingu','New in the ladder'),'mmr',a.new.map(newRow),null,null,null,10);
  o+='<p class="dim">'+T('Wygrane, przegrane, gry, % i zmiana MMR dotyczą tylko czasu między dwoma skanami; miejsce, liga, poziom i MMR pochodzą z aktualnego skanu. Nowi gracze nie mają poprzedniego skanu, więc pokazujemy ich cały bilans. Gracze dopasowani po BattleTagu; wartości odczytywane przez OCR, pojedyncze mogą być błędne.','Wins, losses, games, % and MMR change cover only the time between the two scans; rank, league, level and MMR come from the current scan. New players have no previous scan, so their whole record is shown. Players are matched by BattleTag; values are read by OCR, single ones may be wrong.')+'</p>';
  var K=D.known||{pro:[],famous:[]};
- function knownList(g){var w=K[g].filter(function(x){return x[1]}).map(function(x){return esc(x[0])});return w.length?w.join(', '):T('na razie żadnego','none yet')}
+ function inLadder(g){var seen={},out=[];(a[g]||[]).forEach(function(r){if(!seen[r[12]]){seen[r[12]]=1;out.push(esc(r[12]))}});return out}
  function played(rows){return rows.map(pairRow).filter(function(x){return x.w!=null&&x.w+x.l>0}).sort(function(a,b){return (b.w+b.l)-(a.w+a.l)||b.mmr-a.mmr})}
  if(K.pro.length)o+=sTable('p',T('Aktywność zawodowców','Pro players activity'),'g',played(a.pro||[]),
-  T('Najlepsza 25 rankingu Elo warcraft3.info','Top 25 of the warcraft3.info Elo ranking')+(K.date?' ('+esc(K.date)+')':'')+'. '+T('Znamy BattleTagi ','We know the BattleTags of ')+K.pro.filter(function(x){return x[1]}).length+T(' z nich: ',' of them: ')+knownList('pro')+'.',
+  T('Najlepsza 25 rankingu Elo warcraft3.info','Top 25 of the warcraft3.info Elo ranking')+(K.date?' ('+esc(K.date)+')':'')+'. '+T('Konto w tym rankingu ma ','Accounts in this ladder: ')+inLadder('pro').length+T(' z nich',' of them')+(inLadder('pro').length?': '+inLadder('pro').join(', '):'')+'. '+T('Większość zawodowców gra głównie na W3Champions.','Most pros play mainly on W3Champions.'),
   T('Nikt z zawodowców nie grał na Battle.net między skanami.','Nobody from the pro players played on Battle.net between the scans.'),KCOLS);
  if(K.famous.length)o+=sTable('f',T('Aktywność znanych graczy','Famous players activity'),'g',played(a.famous||[]),
-  T('Znani gracze spoza aktualnej 25 (dawni zawodowcy, streamerzy): ','Well-known players outside the current top 25 (former pros, streamers): ')+knownList('famous')+'.',
+  T('Znani gracze spoza aktualnej 25 (streamerzy, osobistości, dawni zawodowcy) – lista ','Well-known players outside the current top 25 (streamers, personalities, former pros) – a list of ')+K.famous.length+T(' osób. Konto w tym rankingu ma ',' people. Accounts in this ladder: ')+inLadder('famous').length+(inLadder('famous').length?': '+inLadder('famous').join(', '):'')+'.',
   T('Nikt ze znanych graczy nie grał na Battle.net między skanami.','Nobody from the famous players played on Battle.net between the scans.'),KCOLS);
  root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;activityPage()};
+ document.querySelectorAll('a[data-more]').forEach(function(x){x.onclick=function(e){e.preventDefault();var id=x.dataset.more;st.more[id]=!st.more[id];var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
  document.querySelectorAll('th[data-st]').forEach(function(h){h.onclick=function(){var id=h.dataset.st,c=+h.dataset.c,cur=st.sort[id]||{c:+h.parentNode.parentNode.parentNode.dataset.kc,d:1};st.sort[id]={c:c,d:cur&&cur.c==c?(cur.d?0:1):+h.dataset.n};var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
  if(!window._agoT)window._agoT=setInterval(tickAgo,20000)}
 function homePage(){

@@ -27,6 +27,7 @@ tr:hover td{background:#251e15}.tw{overflow-x:auto}
 td.small{font-size:13px}
 @media(max-width:700px){.pbar{width:60px}}
 .cards.act .card b i{font-style:normal}
+p.more{margin:6px 0 0;text-align:right}
 table.srt th.key{color:var(--ink);box-shadow:inset 0 -2px 0 var(--gold)}
 table.srt td.key{background:rgba(217,165,33,.09);font-weight:600}
 table.srt tr:hover td.key{background:rgba(217,165,33,.16)}
