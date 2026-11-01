@@ -18,7 +18,7 @@ function setLang(l){L=l;try{localStorage.setItem('lang',l)}catch(e){}render()}
 function chrome(){
  document.querySelectorAll('[data-pl]').forEach(function(e){e.innerHTML=T(e.getAttribute('data-pl'),e.getAttribute('data-en'))});
  document.documentElement.lang=L=='zh'?'zh-Hans':L;
- var ls=document.getElementById('langsel');if(ls)ls.value=L;
+ document.querySelectorAll('.lang button[data-l]').forEach(function(b){var on=b.dataset.l==L;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
 }
 function hist(el,m,race){
  var h=D.modes[m].hist,idx=race?D.races.indexOf(race)+2:1,mx=0;
@@ -297,39 +297,46 @@ function tickAgo(){var e=document.getElementById('ago');if(e)e.textContent=agoTe
 function activityPage(){
  var root=document.getElementById('app'),ms=Object.keys(D.activity);
  if(!ms.length){root.innerHTML='<div class="note">'+T('Jest dopiero jeden skan rankingu (','There is only one ladder scan so far (')+esc(D.modes['1v1']?D.modes['1v1'].date:'')+T('), więc nie ma jeszcze z czym porównywać. Ta strona wypełni się po drugim skanie: kto zagrał najwięcej gier, największe skoki MMR, nowi i wypadli z rankingu.','), so there is nothing to compare yet. This page fills in after the second scan: most games played, biggest MMR jumps, newcomers and players who dropped out.')+'</div>';return}
- var st=window._sa=window._sa||{m:ms[0]};if(!D.activity[st.m])st.m=ms[0];
- var a=D.activity[st.m];
+ var st=window._sa=window._sa||{m:D.activity[QS.get('mode')]?QS.get('mode'):ms[0],w:QS.get('w')||'new'};if(!D.activity[st.m])st.m=ms[0];
+ var a0=D.activity[st.m],ALT=a0.alt||{};if(!st.w||(st.w!='new'&&!ALT[st.w]))st.w='new';var a=st.w=='new'?a0:ALT[st.w];
  var o='<div class="ctl"><label class="col">'+T('Tryb','Mode')+' <select id="am">'+ms.map(function(m){return'<option'+(m==st.m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></label>';
+ if(ALT.old||ALT.both)o+='<div class="wsel"><span>'+T('Okno','Window')+'</span><div class="seg">'+[['new',T('Najnowsze','Latest')],['old',T('Poprzednie','Previous')],['both',T('Oba razem','Both')]].filter(function(x){return x[0]=='new'||ALT[x[0]]}).map(function(x){
+  return'<button data-w="'+x[0]+'" class="'+(st.w==x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div></div>';
  var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}
- o+='<div class="scant" title="'+T('Czas Twojej strefy','Your local time')+(tz?' ('+esc(tz)+')':'')+'"><div><span class="dim">'+T('Poprzedni skan','Previous scan')+'</span><b>'+scanWhen(a.t0,a.from)+'</b></div>'+
-  '<div><span class="dim">'+T('Aktualny skan','Current scan')+'</span><b>'+scanWhen(a.t1,a.to)+'</b></div>'+
-  (a.t1?'<div><span class="dim">'+T('Od aktualnego skanu minęło','Time since the current scan')+'</span><b id="ago" data-t="'+a.t1[1]+'">'+agoText(a.t1[1])+'</b></div>':'')+
+ o+='<div class="scant" title="'+T('Czas Twojej strefy','Your local time')+(tz?' ('+esc(tz)+')':'')+'"><div><span class="dim">'+(st.w=='new'?T('Poprzedni skan','Previous scan'):T('Początek okna','Window start'))+'</span><b>'+scanWhen(a.t0,a.from)+'</b></div>'+
+  '<div><span class="dim">'+(st.w=='new'?T('Aktualny skan','Current scan'):T('Koniec okna','Window end'))+'</span><b>'+scanWhen(a.t1,a.to)+'</b></div>'+
+  (a.t1&&st.w=='new'?'<div><span class="dim">'+T('Od aktualnego skanu minęło','Time since the current scan')+'</span><b id="ago" data-t="'+a.t1[1]+'">'+agoText(a.t1[1])+'</b></div>':'')+
+  (st.w!='new'&&a.sum&&a.sum.hours?'<div><span class="dim">'+T('Długość okna','Window length')+'</span><b>'+(Math.floor(a.sum.hours/24)?Math.floor(a.sum.hours/24)+' '+T('d','d')+' ':'')+Math.round(a.sum.hours%24)+' '+T('godz.','h')+'</b></div>':'')+
   (a.next?'<div title="'+scanWhen([a.next,a.next],'')+'"><span class="dim">'+T('Następny skan','Next scan')+'</span><b id="nxt" data-t="'+a.next+'">'+inText(a.next)+'</b></div>':'')+
   '</div></div>';
- var S=a.sum||{},nf=function(x){return Math.round(x).toLocaleString()};
+ var S=a.sum||{},nf=function(x){return Math.round(x).toLocaleString()},TM=st.m.indexOf('arranged')>=0,KEY=a.match=='key',MIX=a.match=='mixed';
  var day=function(g){return S.hours>0?g/S.hours*24:null};
  if(S.games!=null){
   var hh=S.hours.toFixed(1)+' h',per=Math.round(S.pg/S.games);
   o+='<details class="help"><summary><h2>'+T('Liczba gier','Number of games')+'</h2><span class="q" title="'+T('Jak liczymy?','How is this counted?')+'">?</span></summary><div class="helpbox">'+
-   '<p><b>Battle.net.</b> '+T('Przy każdym skanie odczytujemy cały ranking z gry (każdą stronę: zrzut ekranu i rozpoznawanie tekstu). Dla graczy rozpoznanych po BattleTagu w obu skanach (','At every scan we read the whole in-game ladder (every page: screenshot and text recognition). For the players recognised by BattleTag in both scans (')+nf(S.pairs)+T(') sumujemy nowe wygrane i przegrane: ',') we add up the new wins and losses: ')+nf(S.pg)+T('. W jednej grze bierze udział tylu graczy: ','. Players taking part in one game: ')+per+' → ≈ '+nf(S.games)+'. '+T('To szacunek – części przeciwników nie rozpoznajemy.','This is an estimate – some opponents are not recognised.')+'</p>'+
+   '<p><b>Battle.net.</b> '+(MIX?T('Przy każdym skanie odczytujemy cały ranking z gry (każdą stronę: zrzut ekranu i rozpoznawanie tekstu). Gracze są łączeni po BattleTagu, a gdy w którymś skanie wiersz nie ma tagu – po nicku, rasie i ikonie (tylko jednoznaczne dopasowania). Dla tych par (','At every scan we read the whole in-game ladder (every page: screenshot and text recognition). Players are joined by BattleTag, and when a row has no tag in one of the scans – by name, race and icon (unique matches only). For these pairs ('):KEY?T('Przy każdym skanie odczytujemy cały ranking z gry (każdą stronę: zrzut ekranu i rozpoznawanie tekstu). Starszy skan nie ma BattleTagów, więc wiersze łączymy po nicku, rasie i ikonie (drużyny po składzie), tylko gdy pasuje dokładnie jeden wiersz w obu skanach. Dla tych par (','At every scan we read the whole in-game ladder (every page: screenshot and text recognition). The older scan has no BattleTags, so rows are joined by name, race and icon (teams by their line-up), only when exactly one row matches in both scans. For these pairs ('):T('Przy każdym skanie odczytujemy cały ranking z gry (każdą stronę: zrzut ekranu i rozpoznawanie tekstu). Dla graczy rozpoznanych po BattleTagu w obu skanach (','At every scan we read the whole in-game ladder (every page: screenshot and text recognition). For the players recognised by BattleTag in both scans ('))+nf(S.pairs)+T(') sumujemy nowe wygrane i przegrane: ',') we add up the new wins and losses: ')+nf(S.pg)+(TM?T('. W jednej grze grają dwie drużyny: ','. Teams taking part in one game: '):T('. W jednej grze bierze udział tylu graczy: ','. Players taking part in one game: '))+per+' → ≈ '+nf(S.games)+'. '+T('To szacunek – części przeciwników nie rozpoznajemy.','This is an estimate – some opponents are not recognised.')+'</p>'+
    (S.w3c_games!=null?'<p><b>W3Champions.</b> '+T('Ich publiczne statystyki podają liczbę gier na każdą dobę (czas UTC). Z każdej doby bierzemy tylko tę część, która mieści się między końcami dwóch skanów (',
    'Their public statistics give the number of games for every day (UTC time). From every day we take only the part that falls between the ends of the two scans (')+hh+T('), zakładając, że gry rozkładają się równo w ciągu doby → ≈ ','), assuming games are spread evenly over the day → ≈ ')+nf(S.w3c_games)+'.</p>':'')+
+   (S.summed?'<p>'+T('Oba okna razem: gry, wygrane i przegrane to suma obu okien (bezpośrednie porównanie pierwszego i ostatniego skanu rozpoznaje mniej graczy, gdy pierwszy skan nie ma BattleTagów).','Both windows together: games, wins and losses are the sum of the two windows (a direct comparison of the first and the last scan recognises fewer players when the first scan has no BattleTags).')+'</p>':'')+
    '<p>'+T('„Na dobę” i „na godzinę”: obie liczby dzielimy przez ten sam czas między skanami (','“Per day” and “per hour”: both numbers are divided by the same time between the scans (')+hh+').</p></div></details><div class="cards act">';
   o+='<div class="card svc"><img src="assets/bnet.png" alt="Battle.net" title="Battle.net"><div><b>≈ '+nf(S.games)+'</b><em>≈ '+nf(day(S.games))+' '+T('na dobę','per day')+' · ≈ '+nf(S.games/S.hours)+' '+T('na godzinę','per hour')+'</em></div></div>';
   if(S.w3c_games!=null){
    o+='<div class="card svc"><img src="assets/w3c.png" alt="W3Champions" title="W3Champions"><div><b>≈ '+nf(S.w3c_games)+'</b><em>≈ '+nf(day(S.w3c_games))+' '+T('na dobę','per day')+' · ≈ '+nf(S.w3c_games/S.hours)+' '+T('na godzinę','per hour')+'</em></div></div>';
-   if(S.w3c_games>0)o+='<div class="card svc ratio"><span class="eclipse"><img class="big" src="assets/bnet.png" alt="Battle.net" title="Battle.net"><img class="moon" src="assets/w3c.png" alt="W3Champions" title="W3Champions" style="width:'+(72/Math.max(1,S.games/S.w3c_games)).toFixed(1)+'px;height:'+(72/Math.max(1,S.games/S.w3c_games)).toFixed(1)+'px"></span><div><b>× '+(S.games/S.w3c_games).toFixed(1)+'</b><em>'+T('tyle razy więcej gier na Battle.net','times more games on Battle.net')+'<br>'+(S.games/(S.games+S.w3c_games)*100).toFixed(0)+'% '+T('wszystkich gier obu serwisów','of all games of both services')+'</em></div></div>'}
+   if(S.w3c_games>0)o+='<div class="card svc ratio"><span class="eclipse"><img class="big" src="assets/bnet.png" alt="Battle.net" title="Battle.net"><img class="moon" src="assets/w3c.png" alt="W3Champions" title="W3Champions" style="width:'+Math.max(6,72/Math.max(1,S.games/S.w3c_games)).toFixed(1)+'px;height:'+Math.max(6,72/Math.max(1,S.games/S.w3c_games)).toFixed(1)+'px"></span><div><b>× '+(S.games/S.w3c_games>=100?nf(S.games/S.w3c_games):(S.games/S.w3c_games).toFixed(1))+'</b><em>'+T('tyle razy więcej gier na Battle.net','times more games on Battle.net')+'<br>'+(S.games/(S.games+S.w3c_games)*100).toFixed(0)+'% '+T('wszystkich gier obu serwisów','of all games of both services')+'</em></div></div>'}
   o+='</div>'}
- o+='<h2>'+T('Gracze','Players')+'</h2><div class="cards act">';
- if(S.pairs)o+='<div class="card"><b>'+nf(S.active)+' <small>'+(S.active/S.pairs*100).toFixed(0)+'%</small></b><span>'+T('aktywnych graczy (min. 1 gra)','active players (1+ game)')+'</span></div>';
- o+='<div class="card"><b>'+nf(a.new_n)+'</b><span>'+T('nowi w rankingu','new in the ladder')+'</span></div>';
+ o+='<h2>'+(TM?T('Drużyny','Teams'):T('Gracze','Players'))+'</h2><div class="cards act">';
+ if(S.pairs)o+='<div class="card"><b>'+nf(S.active)+' <small>'+(S.active/S.pairs*100).toFixed(0)+'%</small></b><span>'+(TM?T('aktywnych drużyn (min. 1 gra)','active teams (1+ game)'):T('aktywnych graczy (min. 1 gra)','active players (1+ game)'))+'</span></div>';
+ o+='<div class="card"><b>'+nf(a.new_n)+'</b><span>'+(TM?T('nowe drużyny w rankingu','new teams in the ladder'):T('nowi w rankingu','new in the ladder'))+'</span></div>';
  if(S.pairs)o+='<div class="card"><b><i class="up">▲ '+nf(S.up)+'</i> <i class="down">▼ '+nf(S.down)+'</i></b><span>'+T('awanse / spadki ligi','league promotions / demotions')+'</span></div>';
  o+='</div>';
  if(S.races&&S.races.length){var tot=S.races.reduce(function(x,y){return x+y[1]},0);
   var rs=S.races.slice().sort(function(x,y){return y[1]-x[1]});
   o+='<h2>'+T('Gry według ras','Games by race')+'</h2><div class="rbar">'+rs.map(function(x){return'<span style="width:'+(x[1]/tot*100).toFixed(2)+'%;background:var(--'+RC[x[0]]+')" title="'+esc(rn(x[0]))+'"></span>'}).join('')+'</div>';
   o+='<div class="rleg">'+rs.map(function(x){return'<span><i style="background:var(--'+RC[x[0]]+')"></i>'+esc(rn(x[0]))+' <b>'+(x[1]/tot*100).toFixed(0)+'%</b> <span class="dim">'+nf(x[1])+'</span></span>'}).join('')+'</div>'}
- if(S.pairs)o+='<p class="dim small">'+T('Gracze i rasy: ','Players and races: ')+nf(S.pairs)+T(' graczy rozpoznanych po BattleTagu w obu skanach; gry ras liczone po stronie każdego gracza.',' players recognised by BattleTag in both scans; games by race are counted on each player’s side.')+'</p>';
+ if(S.pairs)o+='<p class="dim small">'+(TM?T('Drużyny: ','Teams: ')+nf(S.pairs)+T(' drużyn znalezionych w obu skanach po składzie (starszy skan nie ma BattleTagów).',' teams found in both scans by their line-up (the older scan has no BattleTags).'):
+  MIX?T('Gracze i rasy: ','Players and races: ')+nf(S.pairs)+T(' graczy znalezionych w obu skanach po BattleTagu albo (bez tagu) po nicku, rasie i ikonie; gry ras liczone po stronie każdego gracza.',' players found in both scans by BattleTag or (without a tag) by name, race and icon; games by race are counted on each player’s side.'):
+  KEY?T('Gracze i rasy: ','Players and races: ')+nf(S.pairs)+T(' graczy znalezionych w obu skanach po nicku, rasie i ikonie (starszy skan nie ma BattleTagów); gry ras liczone po stronie każdego gracza.',' players found in both scans by name, race and icon (the older scan has no BattleTags); games by race are counted on each player’s side.'):
+  T('Gracze i rasy: ','Players and races: ')+nf(S.pairs)+T(' graczy rozpoznanych po BattleTagu w obu skanach; gry ras liczone po stronie każdego gracza.',' players recognised by BattleTag in both scans; games by race are counted on each player’s side.'))+'</p>';
  // Saul 2026-10-31: the three tables share ONE column layout, in the order of the Ranking page, so readers get used to it;
  // the column a table is about is highlighted (Most games: Games, Biggest MMR changes: Change, New: MMR). Wins, losses, games,
  // % and change come only from the time between the two scans; rank, league, level and MMR from the current scan. Click sorts.
@@ -339,7 +346,7 @@ function activityPage(){
  function newRow(r){return {rank:r[8],name:r[0],icon:r[3],lg:r[6],lvl:r[7],race:r[1],mmr:r[2],chg:null,w:r[4],l:r[5]}}
  var COLS=[
   {k:'rank',h:'#',n:1,v:function(o){return o.rank},td:function(o){return o.rank==null?dash:o.rank}},
-  {k:'name',h:T('Gracz','Player'),v:function(o){return (o.name||'').toLowerCase()},td:function(o){return icon(o.icon)+nm(o.name)}},
+  {k:'name',h:st.m.indexOf('arranged')>=0?T('Drużyna','Team'):T('Gracz','Player'),v:function(o){return (o.name||'').toLowerCase()},td:function(o){return icon(o.icon)+nm(o.name)}},
   {k:'lg',h:T('Liga','League'),hi:1,v:function(o){return o.lg||null},td:function(o){return lgc(o.lg)}},
   {k:'lvl',h:T('Poz.','Lvl'),n:1,v:function(o){return o.lvl},td:function(o){return o.lvl==null?dash:o.lvl}},
   {k:'race',h:T('Rasa','Race'),v:function(o){return rn(o.race)},td:function(o){return rc(o.race)}},
@@ -365,9 +372,10 @@ function activityPage(){
    rows.slice(0,lim&&!st.more[id]?lim:rows.length).map(function(o){return'<tr>'+COLS_.map(function(k,n){return'<td class="'+cls(k,n)+'">'+k.td(o)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'+
    (lim&&rows.length>lim?'<p class="dim small more"><a href="#" data-more="'+id+'">'+(st.more[id]?T('Pokaż mniej','Show less'):T('Pokaż wszystkie','Show all')+' ('+rows.length+')')+'</a></p>':'')}
  o+=sTable('g',T('Najwięcej rozegranych gier','Most games played'),'g',a.games.filter(function(r){return r[2]>0}).map(pairRow),null,null,null,10);
- o+=sTable('j',T('Największe zmiany MMR','Biggest MMR changes'),'chg',a.jumps.map(pairRow),T('Gracze, którzy przed oknem mieli co najmniej 25 gier – nowe konta w kalibracji zmieniają MMR nawet o 300 na grę.','Players with at least 25 games before the window – new accounts in placement move up to 300 MMR per game.'),null,null,10);
- o+=sTable('n',T('Nowi w rankingu','New in the ladder'),'mmr',a.new.map(newRow),null,null,null,10);
- o+='<p class="dim">'+T('Wygrane, przegrane, gry, % i zmiana MMR dotyczą tylko czasu między dwoma skanami; miejsce, liga, poziom i MMR pochodzą z aktualnego skanu. Nowi gracze nie mają poprzedniego skanu, więc pokazujemy ich cały bilans. Gracze dopasowani po BattleTagu; wartości odczytywane przez OCR, pojedyncze mogą być błędne.','Wins, losses, games, % and MMR change cover only the time between the two scans; rank, league, level and MMR come from the current scan. New players have no previous scan, so their whole record is shown. Players are matched by BattleTag; values are read by OCR, single ones may be wrong.')+'</p>';
+ o+=sTable('j',T('Największe zmiany MMR','Biggest MMR changes'),'chg',a.jumps.map(pairRow),(st.m.indexOf('arranged')>=0?T('Drużyny, które przed oknem miały co najmniej 25 gier – nowe drużyny w kalibracji zmieniają MMR nawet o 300 na grę.','Teams with at least 25 games before the window – new teams in placement move up to 300 MMR per game.'):T('Gracze, którzy przed oknem mieli co najmniej 25 gier – nowe konta w kalibracji zmieniają MMR nawet o 300 na grę.','Players with at least 25 games before the window – new accounts in placement move up to 300 MMR per game.')),null,null,10);
+ o+=sTable('n',st.m.indexOf('arranged')>=0?T('Nowe drużyny w rankingu','New teams in the ladder'):T('Nowi w rankingu','New in the ladder'),'mmr',a.new.map(newRow),null,null,null,10);
+ o+='<p class="dim">'+(a.match=='tag'?T('Wygrane, przegrane, gry, % i zmiana MMR dotyczą tylko czasu między dwoma skanami; miejsce, liga, poziom i MMR pochodzą z aktualnego skanu. Nowi gracze nie mają poprzedniego skanu, więc pokazujemy ich cały bilans. Gracze dopasowani po BattleTagu; wartości odczytywane przez OCR, pojedyncze mogą być błędne.','Wins, losses, games, % and MMR change cover only the time between the two scans; rank, league, level and MMR come from the current scan. New players have no previous scan, so their whole record is shown. Players are matched by BattleTag; values are read by OCR, single ones may be wrong.'):
+  T('Wygrane, przegrane, gry, % i zmiana MMR dotyczą tylko czasu między dwoma skanami; miejsce, liga, poziom i MMR pochodzą z aktualnego skanu. Nowi gracze nie mają poprzedniego skanu, więc pokazujemy ich cały bilans. Gracze dopasowani po BattleTagu, a bez tagu po nicku, rasie i ikonie (drużyny po składzie); wartości odczytywane przez OCR, pojedyncze mogą być błędne.','Wins, losses, games, % and MMR change cover only the time between the two scans; rank, league, level and MMR come from the current scan. New players have no previous scan, so their whole record is shown. Players are matched by BattleTag, and without a tag by name, race and icon (teams by their line-up); values are read by OCR, single ones may be wrong.'))+'</p>';
  var K=D.known||{pro:[],famous:[]};
  function inLadder(g){var seen={},out=[];(a[g]||[]).forEach(function(r){if(!seen[r[12]]){seen[r[12]]=1;out.push(esc(r[12]))}});return out}
  function played(rows){return rows.map(pairRow).filter(function(x){return x.w!=null&&x.w+x.l>0}).sort(function(a,b){return (b.w+b.l)-(a.w+a.l)||b.mmr-a.mmr})}
@@ -377,7 +385,8 @@ function activityPage(){
  if(K.famous.length)o+=sTable('f',T('Aktywność znanych graczy','Famous players activity'),'g',played(a.famous||[]),
   T('Znani gracze spoza listy zawodowców (streamerzy, osobistości, dawni zawodowcy) – lista ','Well-known players outside the pro list (streamers, personalities, former pros) – a list of ')+K.famous.length+T(' osób. Konto w tym rankingu ma ',' people. Accounts in this ladder: ')+inLadder('famous').length+(inLadder('famous').length?': '+inLadder('famous').join(', '):'')+'.',
   T('Nikt ze znanych graczy nie grał na Battle.net między skanami.','Nobody from the famous players played on Battle.net between the scans.'),KCOLS);
- root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;activityPage()};
+ root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;st.w='new';activityPage()};
+ document.querySelectorAll('button[data-w]').forEach(function(b){b.onclick=function(){st.w=b.dataset.w;var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
  document.querySelectorAll('a[data-more]').forEach(function(x){x.onclick=function(e){e.preventDefault();var id=x.dataset.more;st.more[id]=!st.more[id];var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
  document.querySelectorAll('th[data-st]').forEach(function(h){h.onclick=function(){var id=h.dataset.st,c=+h.dataset.c,cur=st.sort[id]||{c:+h.parentNode.parentNode.parentNode.dataset.kc,d:1};st.sort[id]={c:c,d:cur&&cur.c==c?(cur.d?0:1):+h.dataset.n};var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
  if(!window._agoT)window._agoT=setInterval(tickAgo,20000)}
@@ -403,7 +412,7 @@ function render(){
  chrome();var p=document.body.dataset.page;
  if(p=='home')homePage();else if(p=='ranking')rankingPage();else if(p=='records')recordsPage();else if(p=='icons')iconsPage();else if(p=='w3c')w3cPage();else if(p=='activity')activityPage();else if(p=='about')aboutPage();
  var f=document.getElementById('foot');if(f)f.textContent=T('Dane: ranking gry Warcraft III · aktualizacja ','Data: Warcraft III in-game ladder · updated ')+builtText()}
-var _ls=document.getElementById('langsel');if(_ls)_ls.onchange=function(){setLang(this.value)};
+document.querySelectorAll('.lang button[data-l]').forEach(function(b){b.onclick=function(){setLang(b.dataset.l)}});
 
 (function(){
  var app=document.getElementById('app');if(!app)return;
