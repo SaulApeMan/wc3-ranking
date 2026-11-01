@@ -34,9 +34,10 @@ var SORTS={rank:function(r){return r[0]},mmr:function(r){return r[3]},games:game
 function lgname(id){var l=D.leagues[id];if(!l)return '?';var nm=l[L=='en'?'name':L]||l.name;return nm||T('Dywizja ','Division ')+l.n}
 function lgopt(id){var l=D.leagues[id];return l&&l.name?lgname(id)+' ('+T('Dywizja ','Division ')+l.n+')':lgname(id)}
 function lgcell(id){var l=D.leagues[id];if(!l)return '<span class="dim">–</span>';return (l.img?'<img class="lg" src="'+esc(l.img)+'" alt="'+esc(lgname(id))+'" title="'+esc(lgname(id))+'" loading="lazy">':'')+'<span class="lgn">'+esc(lgname(id))+'</span>'}
-function knownMap(m){var k={};(m.known||[]).forEach(function(x){k[x[0]]=x});return k}
-function knownBadge(k,name){if(!k)return '';var same=name&&name.toLowerCase()==k[2].toLowerCase();
- return ' <span class="kn '+(k[1]=='p'?'kp':'kf')+'" title="'+esc(k[1]=='p'?T('Zawodowiec – najlepsza 25 rankingu Elo warcraft3.info','Pro player – top 25 of the warcraft3.info Elo ranking'):T('Znany gracz','Famous player'))+': '+esc(k[2])+'">'+(k[1]=='p'?'PRO':'★')+(same?'':' · '+esc(k[2]))+'</span>'}
+function knownMap(m){var k={};(m.known||[]).forEach(function(x){(k[x[0]]=k[x[0]]||[]).push(x)});return k}
+function knownBadge(ks,name){return (ks||[]).map(function(k){return knownBadge1(k,name)}).join('')}
+function knownBadge1(k,name){if(!k)return '';var same=name&&name.toLowerCase()==k[2].toLowerCase();
+ return ' <span class="kn '+(k[1]=='p'?'kp':'kf')+'" title="'+esc(k[1]=='p'?T('Zawodowiec – czołówka rankingu Elo warcraft3.info','Pro player – top of the warcraft3.info Elo ranking'):T('Znany gracz','Famous player'))+': '+esc(k[2])+'">'+(k[1]=='p'?'PRO':'★')+(same?'':' · '+esc(k[2]))+'</span>'}
 function rankingPage(){
  var root=document.getElementById('app'),ms=Object.keys(D.modes);
  var st=window._st=window._st||{m:QS.get('mode')||'1v1',race:QS.get('race')||'',icon:QS.get('icon')||'',league:QS.get('league')||'',q:QS.get('q')||'',sort:SORTS[QS.get('sort')]?QS.get('sort'):'rank',dir:QS.get('dir')=='-1'?-1:1,min:+QS.get('min')||0,shown:100,who:QS.get('who')||''};
@@ -53,18 +54,20 @@ function rankingPage(){
  o+='<label><select id="fd"><option value="1"'+(st.dir==1?' selected':'')+'>'+T('rosnąco','ascending')+'</option><option value="-1"'+(st.dir==-1?' selected':'')+'>'+T('malejąco','descending')+'</option></select></label>';
  o+='<label>'+T('Min. gier','Min. games')+' <input id="fg" type="number" min="0" value="'+st.min+'" style="width:80px"></label></div>';
  var KN=knownMap(m);
- var rows=m.top.filter(function(r){var k=KN[r[0]];return(!st.race||r[2]==st.race)&&(!st.icon||r[7]==st.icon)&&(!st.league||r[9]==st.league)&&(!st.who||(k&&st.who.indexOf(k[1])>=0))
-  &&(!st.q||((r[1]||'')+' '+(k?k[2]:'')).toLowerCase().indexOf(st.q.toLowerCase())>=0)&&games(r)>=st.min});
+ var rows=m.top.filter(function(r){var k=KN[r[0]]||[];return(!st.race||r[2]==st.race)&&(!st.icon||r[7]==st.icon)&&(!st.league||r[9]==st.league)
+  &&(!st.who||k.some(function(x){return st.who.indexOf(x[1])>=0}))
+  &&(!st.q||((r[1]||'')+' '+k.map(function(x){return x[2]}).join(' ')).toLowerCase().indexOf(st.q.toLowerCase())>=0)&&games(r)>=st.min});
  var f=SORTS[st.sort];rows=rows.slice().sort(function(a,b){return(f(a)-f(b))*st.dir||a[0]-b[0]});
  o+='<div class="note">'+T('Skan z ','Scan of ')+esc(m.date)+' · '+m.rows.toLocaleString()+T(' wierszy',' rows')+(m.sample?T(' (próbka: tylko pierwsze strony rankingu)',' (sample: first pages of the ladder only)'):'')+(m.partial?' · <b class="down">'+T('skan niepełny – część rankingu','incomplete scan – part of the ladder only')+'</b>':'')+' · '+T('mediana MMR ','median MMR ')+m.mmr_median+' · <b>'+rows.length.toLocaleString()+'</b> '+T('pasuje do filtrów','match the filters')+'<br><span class="dim">'+T('Miejsce w rankingu gry wynika z poziomu konta, nie z MMR – żeby zobaczyć najsilniejszych graczy, sortuj po MMR.','The in-game ladder rank follows account level, not MMR – sort by MMR to see the strongest players.')+'</span></div>';
  o+='<div class="tw"><table><tr><th class="n">#</th><th>'+T('Gracz','Player')+'</th>'+(Object.keys(D.leagues).length?'<th>'+T('Liga','League')+'</th>':'')+'<th class="n">'+T('Poz.','Lvl')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">MMR</th><th class="n">'+T('Wygr.','Wins')+'</th><th class="n">'+T('Przegr.','Losses')+'</th><th class="n">'+T('Gry','Games')+'</th><th class="n">%</th></tr>';
  rows.slice(0,st.shown).forEach(function(r){var g=games(r);o+='<tr><td class="n">'+r[0]+'</td><td>'+icon(r[7])+nm(r[1],r[8],r[0])+qa(r)+knownBadge(KN[r[0]],r[1])+'</td>'+(Object.keys(D.leagues).length?'<td>'+lgcell(r[9])+'</td>':'')+'<td class="n">'+(r[6]==null?'<span class="dim">–</span>':r[6])+'</td><td>'+rc(r[2])+'</td><td class="n">'+r[3]+'</td><td class="n">'+r[4]+'</td><td class="n">'+r[5]+'</td><td class="n">'+g+'</td><td class="n">'+(g?Math.round(r[4]/g*100):0)+'</td></tr>'});
  o+='</table></div><p class="dim">'+T('Pokazano ','Showing ')+Math.min(st.shown,rows.length)+T(' z ',' of ')+rows.length.toLocaleString()+(rows.length>st.shown?' · <a href="#" id="more">'+T('pokaż 200 więcej','show 200 more')+'</a>':'')+'</p>';
- o+='<h2>'+T('Rozkład MMR','MMR distribution')+'</h2><div class="grid2"><div id="h1" class="card"></div><div id="h2" class="card"></div></div>';
+ var at=st.m.indexOf('arranged')>=0;                     // arranged teams have no race: one histogram only
+ o+='<h2>'+T('Rozkład MMR','MMR distribution')+'</h2><div class="'+(at?'':'grid2')+'"><div id="h1" class="card"></div>'+(at?'':'<div id="h2" class="card"></div>')+'</div>';
  root.innerHTML=o;
  hist(document.getElementById('h1'),st.m,'');
- var r2=st.race||'Orc';document.getElementById('h2').insertAdjacentHTML('afterbegin','<b class="'+RC[r2]+'">'+esc(rn(r2))+'</b>');
- var w=document.createElement('div');document.getElementById('h2').appendChild(w);hist(w,st.m,r2);
+ if(!at){var r2=st.race||'Orc';document.getElementById('h2').insertAdjacentHTML('afterbegin','<b class="'+RC[r2]+'">'+esc(rn(r2))+'</b>');
+  var w=document.createElement('div');document.getElementById('h2').appendChild(w);hist(w,st.m,r2)}
  function rd(){st.league=document.getElementById('fl').value;st.who=document.getElementById('fk').value;st.m=document.getElementById('fm').value;st.race=document.getElementById('fr').value;st.sort=document.getElementById('fs').value;st.dir=+document.getElementById('fd').value;st.min=+document.getElementById('fg').value||0;st.shown=100}
  ['fm','fr','fs','fd','fg','fi','fl','fk'].forEach(function(id){document.getElementById(id).onchange=function(){var pm=st.m;rd();st.icon=(id=='fm'&&pm!=st.m)?'':document.getElementById('fi').value;rankingPage()}});
  var q=document.getElementById('fq');q.oninput=function(){st.q=q.value;st.shown=100;var p=q.selectionStart;rankingPage();var n=document.getElementById('fq');n.focus();n.setSelectionRange(p,p)};
@@ -108,11 +111,18 @@ function recordsPage(){
  var OM=D.omni||{all:[],modes:{}},omodes=Object.keys(OM.modes);
  if(OM.all.length){var AB={'Human':'HU','Orc':'ORC','Undead':'UD','Night Elf':'NE','Random':'RND'};
   var ok=window._so||'all';if(ok!='all'&&!OM.modes[ok])ok='all';var allv=ok=='all',list=allv?OM.all:OM.modes[ok];
-  o+='<h2 id="omni">'+T('Wszędzie w rankingu','Everywhere on the ladder')+'</h2><p class="dim">'+(allv?T('BattleTagi z największą liczbą wpisów we wszystkich rankingach Battle.net razem (1v1, 2v2, 3v3, 4v4, FFA; ostatnie pełne skany z odczytanymi tagami).','BattleTags with the most entries in all Battle.net ladders together (1v1, 2v2, 3v3, 4v4, FFA; latest complete scans with tags read).'):T('BattleTagi z największą liczbą wpisów w rankingu 1v1 (osobny wpis na każdą rasę i bramę; najwyżej 15 = 5 ras × 3 bramy), ostatni pełny skan.','BattleTags with the most entries in the 1v1 ladder (a separate entry per race and gateway; at most 15 = 5 races × 3 gateways), latest complete scan.'))+'</p>';
+  o+='<h2 id="omni">'+T('Wszędzie w rankingu','Everywhere on the ladder')+'</h2><p class="dim">'+(allv?T('BattleTagi z największą liczbą wpisów we wszystkich rankingach Battle.net razem (1v1, 2v2, 3v3, 4v4, FFA i drużyny zgrane – każda drużyna to jeden wpis; ostatnie pełne skany z odczytanymi tagami).','BattleTags with the most entries in all Battle.net ladders together (1v1, 2v2, 3v3, 4v4, FFA and arranged teams – each team is one entry; latest complete scans with tags read).'):T('BattleTagi z największą liczbą wpisów w rankingu 1v1 (osobny wpis na każdą rasę i bramę; najwyżej 15 = 5 ras × 3 bramy), ostatni pełny skan.','BattleTags with the most entries in the 1v1 ladder (a separate entry per race and gateway; at most 15 = 5 races × 3 gateways), latest complete scan.'))+'</p>';
   o+='<div class="ctl"><label>'+T('Tryb','Mode')+' <select id="om"><option value="all"'+(allv?' selected':'')+'>'+T('wszystkie tryby','all modes')+'</option>'+omodes.map(function(x){return'<option'+(x==ok?' selected':'')+'>'+x+'</option>'}).join('')+'</select></label>'+(omodes.length<5?'<span class="dim">'+T('Tagi odczytane na razie w: ','Tags read so far in: ')+esc(omodes.join(', '))+'</span>':'')+'</div>';
   o+='<div class="tw"><table><tr><th class="n">#</th><th>BattleTag</th><th class="n">'+T('Wpisy','Entries')+'</th><th>'+(allv?T('Tryby','Modes'):T('Rasy','Races'))+'</th><th class="n">'+T('Najlepsze MMR','Best MMR')+'</th>'+(allv?'':'<th class="n">'+T('Najlepsze miejsce','Best rank')+'</th>')+'</tr>';
   list.forEach(function(x,i){var det=allv?Object.keys(x.modes).map(function(k){return esc(k)+'×'+x.modes[k]}).join(', '):D.races.filter(function(r){return x.races[r]}).map(function(r){return '<span class="'+(RC[r]||'')+'" title="'+esc(rn(r))+'">'+AB[r]+'×'+x.races[r]+'</span>'}).join(', ');
    o+='<tr><td class="n">'+(i+1)+'</td><td>'+esc(x.tag)+'</td><td class="n">'+x.n+'</td><td>'+det+'</td><td class="n">'+x.mmr+'</td>'+(allv?'':'<td class="n">'+x.rank+'</td>')+'</tr>'});
+  o+='</table></div>'}
+ var TR=D.teams_rec||{top:[]};
+ if(TR.top.length){
+  o+='<h2 id="teams">'+T('W ilu drużynach','How many teams')+'</h2><p class="dim">'+T('BattleTagi grające w największej liczbie różnych drużyn na drabinkach drużyn zgranych (arranged team; 1 drużyna = 1 wiersz rankingu). Liczymy tylko graczy, których tag odczytaliśmy z panelu na pewno. Kont w co najmniej jednej drużynie: ','BattleTags that play in the most different teams on the arranged team ladders (1 team = 1 ladder row). Only players whose tag was read from the panel with certainty count. Accounts in at least one team: ')+TR.n.toLocaleString()+'.</p>';
+  o+='<div class="tw"><table><tr><th class="n">#</th><th>BattleTag</th><th class="n">'+T('Drużyny','Teams')+'</th>'+TR.cols.map(function(c){return'<th class="n">'+esc(c)+'</th>'}).join('')+'<th>'+T('Najlepsza drużyna','Best team')+'</th></tr>';
+  TR.top.forEach(function(x,i){var b=x.best,bm=D.modes[b[0]],br=bm?bm.top.filter(function(r){return r[0]==b[1]})[0]:null;
+   o+='<tr><td class="n">'+(i+1)+'</td><td>'+esc(x.tag)+'</td><td class="n"><b>'+x.n+'</b></td>'+TR.cols.map(function(c){return'<td class="n">'+(x.modes[c]||0)+'</td>'}).join('')+'<td class="small">'+(br?esc(b[0])+' #'+b[1]+' · '+nm(br[1],br[8],br[0])+' · MMR '+b[2]:'')+'</td></tr>'});
   o+='</table></div>'}
  root.innerHTML=o;
  document.getElementById('rm').onchange=function(){st.m=this.value;recordsPage()};var _om=document.getElementById('om');if(_om)_om.onchange=function(){window._so=this.value;recordsPage();var h=document.getElementById('omni');if(h)h.scrollIntoView()};document.getElementById('pr').onchange=function(){window._sp=this.value;recordsPage()};document.getElementById('rg').onchange=function(){st.min=+this.value||1;recordsPage()}}
@@ -336,10 +346,10 @@ function activityPage(){
  function inLadder(g){var seen={},out=[];(a[g]||[]).forEach(function(r){if(!seen[r[12]]){seen[r[12]]=1;out.push(esc(r[12]))}});return out}
  function played(rows){return rows.map(pairRow).filter(function(x){return x.w!=null&&x.w+x.l>0}).sort(function(a,b){return (b.w+b.l)-(a.w+a.l)||b.mmr-a.mmr})}
  if(K.pro.length)o+=sTable('p',T('Aktywność zawodowców','Pro players activity'),'g',played(a.pro||[]),
-  T('Najlepsza 25 rankingu Elo warcraft3.info','Top 25 of the warcraft3.info Elo ranking')+(K.date?' ('+esc(K.date)+')':'')+'. '+T('Konto w tym rankingu ma ','Accounts in this ladder: ')+inLadder('pro').length+T(' z nich',' of them')+(inLadder('pro').length?': '+inLadder('pro').join(', '):'')+'. '+T('Większość zawodowców gra głównie na W3Champions.','Most pros play mainly on W3Champions.'),
+  T('Najlepsza ','Top ')+(K.top||K.pro.length)+T(' rankingu Elo warcraft3.info',' of the warcraft3.info Elo ranking')+(K.date?' ('+esc(K.date)+')':'')+'. '+T('Konto w tym rankingu ma ','Accounts in this ladder: ')+inLadder('pro').length+T(' z nich',' of them')+(inLadder('pro').length?': '+inLadder('pro').join(', '):'')+'. '+T('Większość zawodowców gra głównie na W3Champions.','Most pros play mainly on W3Champions.'),
   T('Nikt z zawodowców nie grał na Battle.net między skanami.','Nobody from the pro players played on Battle.net between the scans.'),KCOLS);
  if(K.famous.length)o+=sTable('f',T('Aktywność znanych graczy','Famous players activity'),'g',played(a.famous||[]),
-  T('Znani gracze spoza aktualnej 25 (streamerzy, osobistości, dawni zawodowcy) – lista ','Well-known players outside the current top 25 (streamers, personalities, former pros) – a list of ')+K.famous.length+T(' osób. Konto w tym rankingu ma ',' people. Accounts in this ladder: ')+inLadder('famous').length+(inLadder('famous').length?': '+inLadder('famous').join(', '):'')+'.',
+  T('Znani gracze spoza listy zawodowców (streamerzy, osobistości, dawni zawodowcy) – lista ','Well-known players outside the pro list (streamers, personalities, former pros) – a list of ')+K.famous.length+T(' osób. Konto w tym rankingu ma ',' people. Accounts in this ladder: ')+inLadder('famous').length+(inLadder('famous').length?': '+inLadder('famous').join(', '):'')+'.',
   T('Nikt ze znanych graczy nie grał na Battle.net między skanami.','Nobody from the famous players played on Battle.net between the scans.'),KCOLS);
  root.innerHTML=o;document.getElementById('am').onchange=function(){st.m=this.value;activityPage()};
  document.querySelectorAll('a[data-more]').forEach(function(x){x.onclick=function(e){e.preventDefault();var id=x.dataset.more;st.more[id]=!st.more[id];var y=window.scrollY;activityPage();window.scrollTo(0,y)}});
@@ -355,7 +365,12 @@ function homePage(){
  D.races.forEach(function(r){var n=rc_[r]||0;o+='<div class="card"><b class="'+RC[r]+'">'+Math.round(n/m.rows*100)+'%</b><span>'+esc(rn(r))+' · '+n.toLocaleString()+'</span></div>'});
  o+='</div><h2>'+T('Top 10 według MMR (1v1)','Top 10 by MMR (1v1)')+'</h2><div class="tw"><table><tr><th class="n">'+T('Miejsce','Ladder rank')+'</th><th>'+T('Gracz','Player')+'</th><th>'+T('Rasa','Race')+'</th><th class="n">MMR</th></tr>';
  m.top.slice().sort(function(a,b){return b[3]-a[3]||a[0]-b[0]}).slice(0,10).forEach(function(r){o+='<tr><td class="n">'+r[0]+'</td><td>'+icon(r[7])+nm(r[1],r[8],r[0])+qa(r)+'</td><td>'+rc(r[2])+'</td><td class="n">'+r[3]+'</td></tr>'});
- o+='</table></div>';document.getElementById('app').innerHTML=o}
+ o+='</table></div>';
+ o+='<h2>'+T('Wszystkie drabinki','All ladders')+'</h2><div class="tw"><table><tr><th>'+T('Tryb','Mode')+'</th><th class="n">'+T('Miejsc w rankingu','Ladder places')+'</th><th class="n">'+T('Graczy na stronie','Players on the site')+'</th><th>'+T('Skan','Scan')+'</th></tr>';
+ Object.keys(D.modes).forEach(function(k){var x=D.modes[k];
+  o+='<tr><td><a href="ranking.html?mode='+encodeURIComponent(k)+'">'+esc(k)+'</a></td><td class="n">'+(x.size?x.size.toLocaleString():'<span class="dim">≥ '+x.rows.toLocaleString()+'</span>')+'</td><td class="n">'+x.rows.toLocaleString()+'</td><td>'+esc(x.date)+(x.partial?' · <b class="down">'+T('skan niepełny','incomplete scan')+'</b>':'')+'</td></tr>'});
+ o+='</table></div><p class="dim small">'+T('Miejsca w rankingu = ostatnia ranga pełnego skanu. Na stronie jest trochę mniej graczy, bo ukrywamy wiersze odczytane dwa razy (gracz przesunął się w trakcie skanu) i puste wiersze bez gracza.','Ladder places = the last rank of a complete scan. The site shows slightly fewer players because rows read twice (a player moved during the scan) and empty rows without a player are hidden.')+'</p>';
+ document.getElementById('app').innerHTML=o}
 function builtText(){return D.built_ts?whenTs(D.built_ts):D.built}
 function aboutPage(){document.getElementById('built').textContent=builtText();document.getElementById('patch').textContent=D.patch;document.getElementById('scand').textContent=(D.modes['1v1']||{}).date||''}
 function render(){
